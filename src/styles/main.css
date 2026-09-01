@@ -55,3 +55,227 @@ body {
   color: var(--fg);
   font-size: 1.1rem;
 }
+
+/* ---------- 共通 UI ---------- */
+.is-hidden {
+  display: none !important;
+}
+
+.btn {
+  pointer-events: auto;
+  appearance: none;
+  border: 1px solid rgba(29, 27, 24, 0.25);
+  border-radius: 999px;
+  background: rgba(244, 241, 236, 0.92);
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 0.6rem 1.4rem;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+
+.btn:hover {
+  background: #fff;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn--primary {
+  background: var(--fg);
+  color: var(--panel-fg);
+  border-color: var(--fg);
+  min-width: 10rem;
+}
+
+.btn--primary:hover {
+  background: #3a3632;
+}
+
+.btn--icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+}
+
+.topbar {
+  position: absolute;
+  top: max(0.75rem, env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ---------- ローディング ---------- */
+.loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  transition: opacity 0.4s ease;
+  pointer-events: auto;
+}
+
+.loading.is-hidden {
+  display: grid !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loading__inner {
+  width: min(24rem, 80vw);
+  text-align: center;
+}
+
+.loading__eyebrow,
+.panel__eyebrow {
+  margin: 0 0 0.4rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(29, 27, 24, 0.6);
+}
+
+.loading__title {
+  margin: 0 0 1.5rem;
+  font-size: 1.8rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+
+.loading__track {
+  height: 2px;
+  background: rgba(29, 27, 24, 0.15);
+  overflow: hidden;
+}
+
+.loading__bar {
+  height: 100%;
+  width: 0;
+  background: var(--fg);
+  transition: width 0.3s ease;
+}
+
+.loading__status {
+  margin: 0.8rem 0 0;
+  font-size: 0.85rem;
+  color: rgba(29, 27, 24, 0.7);
+}
+
+/* ---------- オーバーレイとパネル ---------- */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(29, 27, 24, 0.35);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: auto;
+}
+
+.panel {
+  width: min(28rem, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: 1.75rem 1.75rem 1.5rem;
+  border-radius: 1rem;
+  background: rgba(244, 241, 236, 0.97);
+  color: var(--fg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.panel__title {
+  margin: 0 0 1rem;
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+
+.help__rows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+}
+
+.help__rows dt {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.help__rows dd {
+  margin: 0;
+  color: rgba(29, 27, 24, 0.8);
+}
+
+.help__note {
+  margin: 0 0 1.25rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: rgba(29, 27, 24, 0.7);
+}
+
+.help__panel .btn--primary {
+  display: block;
+  margin: 0 auto;
+}
+
+/* ---------- タッチ操作 ---------- */
+.touch-controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.touch-controls__hint {
+  position: absolute;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  color: rgba(29, 27, 24, 0.45);
+}
+
+.touch-controls__hint--left {
+  left: 1.25rem;
+}
+
+.touch-controls__hint--right {
+  right: 1.25rem;
+}
+
+.stick {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(244, 241, 236, 0.8);
+  background: rgba(29, 27, 24, 0.25);
+  will-change: transform;
+}
+
+.stick__knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44%;
+  height: 44%;
+  margin: -22% 0 0 -22%;
+  border-radius: 50%;
+  background: rgba(244, 241, 236, 0.9);
+  will-change: transform;
+}
+
+body.is-touch .btn {
+  font-size: 1.05rem;
+  padding: 0.8rem 1.6rem;
+}

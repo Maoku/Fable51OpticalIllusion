@@ -1,6 +1,0 @@
-[overview-classic] fps 3  tier high  dpr 0.75 | calls 835  tris 213k  geo 194  tex 42 | lights 6/19
-[overview-corridor] fps 6  tier high  dpr 0.75 | calls 703  tris 206k  geo 194  tex 42 | lights 9/19
-[overview-fable] fps 6  tier high  dpr 0.75 | calls 557  tris 188k  geo 196  tex 43 | lights 13/19
-[overview-fable-back] fps 3  tier mid  dpr 0.75 | calls 448  tris 118k  geo 216  tex 47 | lights 7/19
-[stat-well] fps 3  tier mid  dpr 0.75 | calls 208  tris 60k  geo 216  tex 47 | lights 13/19
-[stat-stair] fps 6  tier mid  dpr 0.75 | calls 346  tris 103k  geo 216  tex 47 | lights 9/19

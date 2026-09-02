@@ -55,11 +55,12 @@ export class PostProcess {
       this.ao = ao;
     }
     if (settings.bloom) {
+      // しきい値はトーンマッピング前の線形値。白い壁(≈1.0)が滲まないよう、天窓の空(≈2.2)だけが超える値にする
       const bloom = new UnrealBloomPass(
         new THREE.Vector2(this.width, this.height),
-        0.32,
-        0.45,
-        0.88,
+        0.22,
+        0.3,
+        1.25,
       );
       composer.addPass(bloom);
       this.bloom = bloom;

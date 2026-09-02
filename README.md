@@ -1,9 +1,37 @@
+# Fable 5.1製 Optical Illusion Museum (錯視美術館)
+
+生成AIモデルの空間把握性能を探るために作った技術検証プロジェクト
+
+![](./sample00.jpg)
+![](./sample01.jpg)
+
+
+- Claude Fable 5.1 
+    - 実装計画書 : high
+    - 実装 : xhigh
+
+## 遊べるページ
+https://maoku.github.io/Fable51OpticalIllusion/
+
+### 現行 
+
+- マウス操作とブラウザフォーカスがかちあうので、ヒント表示は Eキー がおすすめ
+- 錯視として成立していない展示があります
+
+## 過去のシリーズ
+
+- Opus 5 : https://github.com/Maoku/Opus5OpticalIllusion
+- Fable 5 : https://github.com/Maoku/FableOpticalIllusion
+- GPT-5.6 Sol https://github.com/Maoku/GPT56SolOpticalIllusion
+
+
 # Optical Illusion Museum
 
 ブラウザで歩き回れる 3D の錯視ミュージアムです。古典錯視を正確に再現した「古典の間」と、視点・光・空間の操作でしか成立しない Fable オリジナル展示を集めた「Fable の間」の 2 室を、回廊で結んでいます。
 
 各展示には「ヒント」があり、初期状態では非表示です。展示に近づくと現れるボタンを押すと、テキストの解説と 3D 上の演出で種明かしが行われ、もう一度押すと元の見え方に戻ります。
 
+- 公開版: <https://maoku.github.io/Fable51OpticalIllusion/>(ブラウザだけで遊べます)
 - 計画: [Docs/IMPLEMENTATION_PLAN.md](Docs/IMPLEMENTATION_PLAN.md)
 - 推奨視点のスクリーンショット: [Docs/screenshots/](Docs/screenshots/)
 - クレジット: [CREDITS.md](CREDITS.md)
@@ -95,13 +123,13 @@ SHOTS=1 npx playwright test screenshots --project=desktop-chromium
 
 ## デプロイ(GitHub Pages)
 
-公開は手動です。`deploy.yml` は `workflow_dispatch` でのみ動き、自動デプロイは設定していません。
+公開先は <https://maoku.github.io/Fable51OpticalIllusion/> です。`deploy.yml` は `main` への push で自動的に走り、公開版が更新されます。任意のタイミングで公開し直したいときは、Actions タブから「Deploy to GitHub Pages」を選んで「Run workflow」を実行します(`gh workflow run deploy.yml --ref main` でも同じです)。
 
-1. リポジトリの Settings → Pages で Source を「GitHub Actions」にします。
-2. Actions タブから「Deploy to GitHub Pages」を選び、`main` ブランチで「Run workflow」を実行します。
-3. ワークフローがリポジトリ名を `BASE_PATH` に渡してビルドし、`https://<owner>.github.io/<repo>/` に公開します。
+Settings → Pages の Source は「GitHub Actions」に設定済みです。ワークフローがリポジトリ名を `BASE_PATH` に渡してビルドし、`https://<owner>.github.io/<repo>/` に公開します。ビルドが失敗した場合は公開されず、直前のサイトが残ります。
 
-CI(`ci.yml`)は push と PR で lint・ライセンス確認・単体テスト・ビルド・E2E を実行しますが、Pages への書き込み権限は持ちません。
+公開時と同じサブパスでローカル確認するには、`BASE_PATH=/Fable51OpticalIllusion/ npm run build` の後に `npx vite preview --base /Fable51OpticalIllusion/` を実行します。
+
+CI(`ci.yml`)は push と PR で lint・ライセンス確認・単体テスト・ビルド・E2E を実行しますが、Pages への書き込み権限は持ちません。デプロイとは独立に走るため、`main` への push では両方が並行して動きます。
 
 ## 構成
 

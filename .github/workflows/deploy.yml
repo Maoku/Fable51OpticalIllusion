@@ -1,8 +1,10 @@
-# GitHub Pages への公開。手動実行(workflow_dispatch)のみ。
-# 自動デプロイは行わない。公開はユーザーの明示的な指示があったときに実行する。
+# GitHub Pages への公開。main への push で自動デプロイし、
+# 手動実行(workflow_dispatch)でも同じ内容を公開できる。
 name: Deploy to GitHub Pages
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:

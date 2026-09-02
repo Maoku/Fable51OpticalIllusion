@@ -3,8 +3,7 @@
 
 生成AIモデルの空間把握性能を探るために作った技術検証プロジェクト
 
-https://github.com/user-attachments/assets/eba5135f-abfa-435a-8d0b-d02f9842fa4e
-![](./sample00.jpg)
+![](./pv-15s.gif)
 
 - Claude Fable 5.1
   - 実装計画書 : high

@@ -100,10 +100,12 @@ npm run dev
 npm run lint        # ESLint と Prettier
 npm test            # Vitest(幾何計算、近接判定、入力、コンテンツの整合など)
 npm run build       # 型チェックとビルド
-npm run test:e2e    # Playwright(起動、移動、ヒントの開閉、ワープ、階段の継ぎ目)
+npm run test:e2e    # Playwright(起動、移動、ヒントの開閉、ワープ、階段の継ぎ目)。ローカル専用
 npm run licenses    # 依存パッケージのライセンス確認
 npm run credits     # credits.ts から CREDITS.md を再生成
 ```
+
+E2E は CI では実行しません。GitHub Actions には GPU がなく WebGL の描画を SwiftShader(CPU)で行うため、実行時間が読めずジョブのタイムアウトに掛かるためです。UI や描画に関わる変更をしたときは、手元で `npm run test:e2e` を通してから push してください。
 
 推奨視点のスクリーンショットを撮り直すには:
 
@@ -128,7 +130,7 @@ Settings → Pages の Source は「GitHub Actions」に設定済みです。ワ
 
 公開時と同じサブパスでローカル確認するには、`BASE_PATH=/Fable51OpticalIllusion/ npm run build` の後に `npx vite preview --base /Fable51OpticalIllusion/` を実行します。
 
-CI(`ci.yml`)は push と PR で lint・ライセンス確認・単体テスト・ビルド・E2E を実行しますが、Pages への書き込み権限は持ちません。デプロイとは独立に走るため、`main` への push では両方が並行して動きます。
+CI(`ci.yml`)は push と PR で lint・ライセンス確認・単体テスト・ビルドを実行します(E2E は上記のとおりローカル専用)。Pages への書き込み権限は持ちません。デプロイとは独立に走るため、`main` への push では両方が並行して動きます。
 
 ## 構成
 

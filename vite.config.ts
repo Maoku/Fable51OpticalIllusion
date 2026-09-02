@@ -15,5 +15,8 @@ export default defineConfig({
   },
   server: {
     host: true,
+    // ポートは PORT で外から指定できる(未指定なら Vite の既定 5173)。
+    // 同じポートを使う別プロセスがいるときに、開発サーバーを別ポートへ逃がすため。
+    port: process.env.PORT ? Number(process.env.PORT) : undefined,
   },
 });

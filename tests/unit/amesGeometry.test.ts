@@ -4,6 +4,7 @@ import {
   DEFAULT_AMES,
   amesScale,
   amesTransform,
+  equalDistanceViewpoint,
   figureApparentPositions,
   realBounds,
   realQuads,
@@ -72,5 +73,70 @@ describe('amesTransform', () => {
     expect(real.x).toBeCloseTo(c.x);
     expect(real.y).toBeCloseTo(c.y);
     expect(real.z).toBeCloseTo(c.z);
+  });
+});
+
+describe('equalDistanceViewpoint', () => {
+  it('二体の人形から等距離にある', () => {
+    const view = equalDistanceViewpoint(p);
+    const [leftApparent, rightApparent] = figureApparentPositions(p);
+    const half = p.figureHeight / 2;
+    const left = amesTransform(leftApparent, p.eye, p.skew);
+    const right = amesTransform(rightApparent, p.eye, p.skew);
+    left.y += half;
+    right.y += half;
+    expect(view.position.distanceTo(left)).toBeCloseTo(view.position.distanceTo(right), 9);
+    expect(view.figureDistance).toBeCloseTo(view.position.distanceTo(left), 9);
+  });
+
+  it('注視点は二体の中点にある', () => {
+    const view = equalDistanceViewpoint(p);
+    expect(view.target.distanceTo(view.position)).toBeGreaterThan(1);
+    const [leftApparent, rightApparent] = figureApparentPositions(p);
+    const left = amesTransform(leftApparent, p.eye, p.skew);
+    const right = amesTransform(rightApparent, p.eye, p.skew);
+    expect(view.target.x).toBeCloseTo((left.x + right.x) / 2, 9);
+    expect(view.target.z).toBeCloseTo((left.z + right.z) / 2, 9);
+  });
+
+  it('部屋の外(鑑賞者側)にあり、古典の間の天井より低い', () => {
+    const view = equalDistanceViewpoint(p);
+    const bounds = realBounds(p);
+    // 手前の壁より鑑賞者側
+    expect(view.position.z).toBeGreaterThan(bounds.max.z);
+    expect(view.position.y).toBeGreaterThan(1.2);
+    expect(view.position.y).toBeLessThan(3.6);
+  });
+
+  it('離れる距離を変えても等距離のまま', () => {
+    for (const spread of [3, 4.6, 6]) {
+      const view = equalDistanceViewpoint(p, spread);
+      const [la, ra] = figureApparentPositions(p);
+      const half = p.figureHeight / 2;
+      const left = amesTransform(la, p.eye, p.skew);
+      const right = amesTransform(ra, p.eye, p.skew);
+      left.y += half;
+      right.y += half;
+      expect(view.position.distanceTo(left), `spread=${spread}`).toBeCloseTo(
+        view.position.distanceTo(right),
+        9,
+      );
+    }
+  });
+
+  it('覗き窓からは左の人形が小さく、等距離の視点では同じ大きさに見える', () => {
+    const [la, ra] = figureApparentPositions(p);
+    const half = p.figureHeight / 2;
+    const left = amesTransform(la, p.eye, p.skew);
+    const right = amesTransform(ra, p.eye, p.skew);
+    left.y += half;
+    right.y += half;
+    const eye = new THREE.Vector3(p.eye.x, p.eye.y, p.eye.z);
+    // 覗き窓からは見かけの大きさが 1.5 倍以上違う
+    const fromEye = eye.distanceTo(left) / eye.distanceTo(right);
+    expect(fromEye).toBeGreaterThan(1.5);
+    // 等距離の視点では 1
+    const view = equalDistanceViewpoint(p);
+    expect(view.position.distanceTo(left) / view.position.distanceTo(right)).toBeCloseTo(1, 9);
   });
 });

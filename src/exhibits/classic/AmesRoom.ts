@@ -3,13 +3,14 @@ import { createCaptionFor } from '../../museum/Caption';
 import { createFigure } from '../../procedural/figure';
 import { BaseExhibit, type LoadContext } from '../Exhibit';
 import { CompositeHintEffect } from '../HintEffect';
-import { CameraOrbit } from '../effects/CameraOrbit';
+import { CameraPath } from '../effects/CameraPath';
 import { MaterialSwap } from '../effects/MaterialSwap';
 import { WireframeReveal } from '../effects/WireframeReveal';
 import {
   DEFAULT_AMES,
   amesTransform,
   apparentEdges,
+  equalDistanceViewpoint,
   figureApparentPositions,
   realBounds,
   realQuads,
@@ -126,19 +127,22 @@ export class AmesRoom extends BaseExhibit {
     const wire = new WireframeReveal([], { throughWalls: true, durationMs: 1400 });
     wire.addLine(edges);
     for (const t of ticks) wire.addLine(t);
-    const roomCenter = this.toWorld(
-      (b.min.x + b.max.x) / 2,
-      (b.min.y + b.max.y) / 2,
-      (b.min.z + b.max.z) / 2,
-    );
+
+    // 二体から等距離の視点へ回り込む。そこでは同じ身長が同じ大きさに見えるので、
+    // 「遠い方が小さく見えていただけ」がそのまま画面に出る
+    const view = equalDistanceViewpoint(p);
+    const target = this.toWorld(view.target.x, view.target.y, view.target.z);
+    const end = this.toWorld(view.position.x, view.position.y, view.position.z);
+    const midway = equalDistanceViewpoint(p, view.position.length() * 0.55, 0.5);
     this.setHint(
       new CompositeHintEffect(
         [
-          new CameraOrbit(ctx.player, {
-            target: roomCenter,
-            sweep: 1.1,
-            lift: 1.9,
-            radiusScale: 1.35,
+          new CameraPath(ctx.player, {
+            target,
+            waypoints: [
+              this.toWorld(midway.position.x, midway.position.y + 0.35, midway.position.z),
+              end,
+            ],
             durationMs: 2600,
           }),
           new MaterialSwap([room], { opacity: 0.35 }, { durationMs: 1400 }),

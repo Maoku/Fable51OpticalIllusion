@@ -6,3 +6,4 @@ temp/
 playwright-report/
 test-results/
 blob-report/
+Docs/screenshots/demo-*.png

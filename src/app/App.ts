@@ -225,8 +225,13 @@ export class App {
   }
 }
 
+/** 次の描画フレームまで待つ。バックグラウンドタブでは rAF が止まるので時間でも解放する */
 function nextFrame(): Promise<void> {
-  return new Promise((r) => requestAnimationFrame(() => r()));
+  return new Promise((r) => {
+    const done = () => r();
+    requestAnimationFrame(done);
+    setTimeout(done, 80);
+  });
 }
 
 /** `?quality=low` のように URL でティアを固定できる(デバッグ用) */

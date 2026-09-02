@@ -142,7 +142,7 @@ export class PlaceholderExhibit extends BaseExhibit {
         b.rotation.z = 0.35;
         a.castShadow = b.castShadow = true;
         this.object.add(a, b);
-        const center = this.object.localToWorld(new THREE.Vector3(0, ped.top + 0.6, 0));
+        const center = this.toWorld(0, ped.top + 0.6, 0);
         this.setHint(
           new CameraOrbit(ctx.player, { target: center, sweep: Math.PI * 0.5, lift: 0.6 }),
         );
@@ -220,12 +220,9 @@ export class PlaceholderExhibit extends BaseExhibit {
         );
         core.position.y = ped.top + 0.3;
         this.object.add(shell, core);
-        const c = this.object.localToWorld(new THREE.Vector3(0, ped.top + 0.3, 0));
-        const normal = new THREE.Vector3(0, 0, -1).applyAxisAngle(
-          new THREE.Vector3(0, 1, 0),
-          this.meta.facing,
-        );
-        // 見る側(正面)を削って中を見せる: 法線は正面から奥へ向く
+        const c = this.toWorld(0, ped.top + 0.3, 0);
+        // 見る側(正面)の半分を削って中を見せる: 法線は正面から奥へ向く
+        const normal = this.frontDir.negate();
         const start = c.clone().addScaledVector(normal, -0.35);
         const end = c.clone();
         this.setHint(

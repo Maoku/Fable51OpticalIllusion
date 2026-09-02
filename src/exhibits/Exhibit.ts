@@ -64,7 +64,10 @@ export function viewpointInFront(
   return { position: p, yaw: facing + Math.PI, pitch };
 }
 
-/** 展示の基底クラス。ジオメトリ生成は `build()` に書く */
+/**
+ * 展示の基底クラス。ジオメトリ生成は `build()` に書く。
+ * ローカル座標は「+z が正面(鑑賞者側)」。meta.facing の向きへ +z が向くように回転する。
+ */
 export abstract class BaseExhibit implements Exhibit {
   readonly object = new THREE.Group();
   readonly colliders: AABB[] = [];
@@ -74,7 +77,24 @@ export abstract class BaseExhibit implements Exhibit {
   constructor(readonly meta: ExhibitMeta) {
     this.object.name = `exhibit:${meta.id}`;
     this.object.position.copy(meta.position);
-    this.object.rotation.y = meta.facing;
+    this.object.rotation.y = meta.facing + Math.PI;
+  }
+
+  /** ローカル座標の点をワールド座標へ(load 前でも使える) */
+  protected toWorld(x: number, y: number, z: number): THREE.Vector3 {
+    const th = this.meta.facing + Math.PI;
+    const cos = Math.cos(th);
+    const sin = Math.sin(th);
+    return new THREE.Vector3(
+      this.meta.position.x + x * cos + z * sin,
+      this.meta.position.y + y,
+      this.meta.position.z - x * sin + z * cos,
+    );
+  }
+
+  /** 正面方向(ローカル +z)のワールド単位ベクトル */
+  protected get frontDir(): THREE.Vector3 {
+    return forwardOf(this.meta.facing);
   }
 
   get hint(): HintEffect {
@@ -120,8 +140,9 @@ export abstract class BaseExhibit implements Exhibit {
     sy: number,
     sz: number,
   ): void {
-    const cos = Math.cos(this.meta.facing);
-    const sin = Math.sin(this.meta.facing);
+    const th = this.meta.facing + Math.PI;
+    const cos = Math.cos(th);
+    const sin = Math.sin(th);
     const corners = [
       [cx - sx / 2, cz - sz / 2],
       [cx + sx / 2, cz - sz / 2],

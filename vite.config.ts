@@ -1,13 +1,12 @@
 import { defineConfig } from 'vite';
 
-/**
- * GitHub Pages ではリポジトリ名がパスの先頭に付く。
- * deploy.yml から BASE_PATH を渡し、ローカルでは '/' で動かす。
- */
-const base = process.env.BASE_PATH ?? '/';
-
 export default defineConfig({
-  base,
+  /**
+   * 出力を相対パスにして、サブディレクトリ配下(GitHub Pages の
+   * /<repo>/ など)にそのまま置けるようにする。dev サーバーでは
+   * Vite が '/' として扱うのでローカルの挙動は変わらない。
+   */
+  base: './',
   build: {
     target: 'es2022',
     sourcemap: false,

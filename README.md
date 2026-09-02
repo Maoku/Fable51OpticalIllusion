@@ -125,9 +125,9 @@ SHOTS=1 npx playwright test screenshots --project=desktop-chromium
 
 公開先は <https://maoku.github.io/Fable51OpticalIllusion/> です。`deploy.yml` は `main` への push で自動的に走り、公開版が更新されます。任意のタイミングで公開し直したいときは、Actions タブから「Deploy to GitHub Pages」を選んで「Run workflow」を実行します(`gh workflow run deploy.yml --ref main` でも同じです)。
 
-Settings → Pages の Source は「GitHub Actions」に設定済みです。ワークフローがリポジトリ名を `BASE_PATH` に渡してビルドし、`https://<owner>.github.io/<repo>/` に公開します。ビルドが失敗した場合は公開されず、直前のサイトが残ります。
+Settings → Pages の Source は「GitHub Actions」に設定済みです。ビルド出力(`dist/`)は相対パス(`base: './'`)なので、`https://<owner>.github.io/<repo>/` のようなサブディレクトリ配下にそのまま置けます。ビルドが失敗した場合は公開されず、直前のサイトが残ります。
 
-公開時と同じサブパスでローカル確認するには、`BASE_PATH=/Fable51OpticalIllusion/ npm run build` の後に `npx vite preview --base /Fable51OpticalIllusion/` を実行します。
+公開時と同じ配置をローカルで確認するには、`npm run build` の後に `npx vite preview` を実行します。サブディレクトリ配下での確認は、`dist/` を任意のフォルダ(例: `public-test/sub/`)にコピーして静的サーバーで開けば同じ結果になります。
 
 CI(`ci.yml`)は push と PR で lint・ライセンス確認・単体テスト・ビルド・E2E を実行しますが、Pages への書き込み権限は持ちません。デプロイとは独立に走るため、`main` への push では両方が並行して動きます。
 

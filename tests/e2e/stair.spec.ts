@@ -99,10 +99,8 @@ test('終わらない階段: どのフライトでも頭上が確保され、カ
       for (const [a, b, c] of tris) {
         const det = (b![2]! - c![2]!) * (a![0]! - c![0]!) + (c![0]! - b![0]!) * (a![2]! - c![2]!);
         if (Math.abs(det) < 1e-12) continue;
-        const u =
-          ((b![2]! - c![2]!) * (x - c![0]!) + (c![0]! - b![0]!) * (z - c![2]!)) / det;
-        const v =
-          ((c![2]! - a![2]!) * (x - c![0]!) + (a![0]! - c![0]!) * (z - c![2]!)) / det;
+        const u = ((b![2]! - c![2]!) * (x - c![0]!) + (c![0]! - b![0]!) * (z - c![2]!)) / det;
+        const v = ((c![2]! - a![2]!) * (x - c![0]!) + (a![0]! - c![0]!) * (z - c![2]!)) / det;
         const w = 1 - u - v;
         if (u < 0 || v < 0 || w < 0) continue;
         const y = u * a![1]! + v * b![1]! + w * c![1]!;
@@ -123,11 +121,12 @@ test('終わらない階段: どのフライトでも頭上が確保され、カ
       return ceil === null ? null : ceil - floor;
     };
 
-    // 各フライトを段の間で標本化する(踊り場そのものは除く)
+    // 各フライトを標本化する。段の境界ちょうどは足元の判定が丸めで揺れるので、
+    // 各段の中央で測る
     const sample = (f: (t: number) => number | null): number[] => {
       const out: number[] = [];
-      for (let i = 1; i < S.steps; i++) {
-        const v = f(i / S.steps);
+      for (let i = 0; i < S.steps; i++) {
+        const v = f((i + 0.5) / S.steps);
         if (v !== null) out.push(v);
       }
       return out;

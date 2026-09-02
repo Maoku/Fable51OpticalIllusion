@@ -114,6 +114,8 @@ SHOTS=1 npx playwright test screenshots --project=desktop-chromium
 
 特定の展示だけなら `SHOTS=ames-room,penrose-triangle`、任意の位置からなら `SHOT_POSES="name:x,z,yaw,pitch"` を指定します。
 
+撮影は SwiftShader(CPU 描画)で走るため、品質ティアは low になります。F7「逆さの水面」だけは low と mid 以上で作りが違う(low は平面反射を描かず、半透明の板の下に彫刻を吊るす)ので、`SHOT_QUERY='&quality=high'` を付けて撮っています。
+
 ## 実機での確認
 
 1. PC とスマホを同じ Wi-Fi に繋ぎ、`npm run dev` を実行します(`vite.config.ts` で `host: true` にしてあるので LAN からアクセスできます)。

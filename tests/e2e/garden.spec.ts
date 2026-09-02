@@ -5,6 +5,9 @@ import { expect, test, type Page } from '@playwright/test';
  * 霞(フォグ)はジオラマの中だけに効かせる。three.js のフォグはシーン全体に
  * 掛かるので、範囲を絞れていないと館内まで霞んでしまう。
  */
+// SwiftShader は CPU 描画なので、ページを 2 回読み込むテストは時間がかかる
+test.setTimeout(150_000);
+
 async function start(page: Page, isMobile: boolean, query = ''): Promise<void> {
   await page.goto(`/?timescale=3${query}`);
   await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 30_000 });
@@ -80,7 +83,8 @@ test('窓の外の庭: 被写界深度は既定では入らず、?dof=1 のと�
 }) => {
   const dof = () => page.evaluate(() => window.__museum!.post.dofEnabled);
 
-  await start(page, isMobile, '&quality=high');
+  // 被写界深度はコンポーザがある mid 以上で効く
+  await start(page, isMobile, '&quality=mid');
   await page.evaluate(() => {
     window.__museum!.quality.paused = true;
   });
@@ -88,7 +92,7 @@ test('窓の外の庭: 被写界深度は既定では入らず、?dof=1 のと�
   await page.waitForTimeout(600);
   expect(await dof(), '既定では入らない').toBe(false);
 
-  await start(page, isMobile, '&quality=high&dof=1');
+  await start(page, isMobile, '&quality=mid&dof=1');
   await page.evaluate(() => {
     window.__museum!.quality.paused = true;
   });

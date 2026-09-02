@@ -37,7 +37,8 @@ export class InvertedPond extends BaseExhibit {
   private hintT = 0;
   private ghost: THREE.Group | null = null;
   private ghostMaterial: THREE.MeshStandardMaterial | null = null;
-  private readonly bounds = new THREE.Sphere();
+  private readonly bounds = new THREE.Box3();
+  private readonly boundsCenter = new THREE.Vector3();
   private readonly frustum = new THREE.Frustum();
   private readonly viewProjection = new THREE.Matrix4();
   private readonly cameraPos = new THREE.Vector3();
@@ -160,7 +161,13 @@ export class InvertedPond extends BaseExhibit {
       water.position.y = P.waterY;
       this.object.add(water);
       this.water = water;
-      this.bounds.set(this.toWorld(0, P.waterY, 0), P.outer);
+      // 水面の範囲。球にするとカメラが中に入ったときに必ず交差してしまい、
+      // 背を向けていても反射を描き続けることになる
+      this.bounds.setFromCenterAndSize(
+        this.toWorld(0, P.waterY, 0),
+        new THREE.Vector3(P.outer, 0.2, P.outer),
+      );
+      this.bounds.getCenter(this.boundsCenter);
     } else {
       // low ティア: 反射を描かず、半透明の板の下に逆さの彫刻を吊るす
       ghost.position.y = P.waterY;
@@ -261,11 +268,14 @@ export class InvertedPond extends BaseExhibit {
     water.advance(delta);
     // 画面に入っていて、近いときだけ反射を描き直す
     camera.getWorldPosition(this.cameraPos);
-    if (this.cameraPos.distanceTo(this.bounds.center) > REFLECT_RANGE) return;
+    if (this.cameraPos.distanceTo(this.boundsCenter) > REFLECT_RANGE) return;
     const cam = camera as THREE.PerspectiveCamera;
+    // matrixWorldInverse は描画のときに更新されるので、ここで今の姿勢に合わせておく。
+    // そうしないと視錐台の判定が 1 フレーム遅れ、振り向いた直後に 1 回余計に描いてしまう
+    cam.updateMatrixWorld();
     this.viewProjection.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse);
     this.frustum.setFromProjectionMatrix(this.viewProjection);
-    if (!this.frustum.intersectsSphere(this.bounds)) return;
+    if (!this.frustum.intersectsBox(this.bounds)) return;
     water.requestReflection();
   }
 

@@ -6,6 +6,9 @@ import { expect, test, type Page } from '@playwright/test';
  * そこでは同じ身長が同じ大きさに見えるので、「遠い方が小さく見えていただけ」が
  * そのまま画面に出る。
  */
+// SwiftShader は CPU 描画なので、カメラの演出が終わるまで時間がかかる
+test.setTimeout(150_000);
+
 async function start(page: Page, isMobile: boolean): Promise<void> {
   await page.goto('/?timescale=3');
   await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 30_000 });

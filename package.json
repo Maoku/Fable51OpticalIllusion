@@ -17,6 +17,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "pv": "node Docs/shooting/telops.mjs && GIF=1 node Docs/shooting/encode.mjs",
+    "pv:capture": "node Docs/shooting/capture.mjs",
+    "pv:all": "npm run pv:capture && npm run pv",
     "credits": "node scripts/generate-credits.ts",
     "licenses": "node scripts/check-licenses.mjs"
   },

@@ -1,0 +1,19 @@
+[
+  { "name": "c1-start", "pose": [0, 5.5, 0, 0] },
+  { "name": "c1-end", "pose": [0, 2.5, 0, 0] },
+  { "name": "c2-before", "warp": "penrose-triangle" },
+  { "name": "c2-mid", "warp": "penrose-triangle", "hint": "penrose-triangle", "hintT": 0.5 },
+  { "name": "c2-after", "warp": "penrose-triangle", "hint": "penrose-triangle" },
+  { "name": "c3-before", "warp": "tilted-room" },
+  { "name": "c3-after", "warp": "tilted-room", "hint": "tilted-room" },
+  { "name": "c4-start", "pose": [-3.9, -22, 1.5708, -0.42] },
+  { "name": "c4-before", "warp": "infinity-well" },
+  { "name": "c4-after", "warp": "infinity-well", "hint": "infinity-well" },
+  { "name": "c5-before", "warp": "endless-stair" },
+  { "name": "c5-mid", "warp": "endless-stair", "hint": "endless-stair", "hintT": 0.45 },
+  { "name": "c5-after", "warp": "endless-stair", "hint": "endless-stair" },
+  { "name": "alt-ames-before", "warp": "ames-room" },
+  { "name": "alt-ames-after", "warp": "ames-room", "hint": "ames-room" },
+  { "name": "alt-garden-before", "warp": "garden-window" },
+  { "name": "alt-garden-after", "warp": "garden-window", "hint": "garden-window" }
+]

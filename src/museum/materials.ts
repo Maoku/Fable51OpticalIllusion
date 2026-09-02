@@ -14,6 +14,10 @@ export interface MuseumMaterials {
   matteWhite: THREE.MeshStandardMaterial;
   /** キャプションプレートなどの黒 */
   matteBlack: THREE.MeshStandardMaterial;
+  /** 天窓の空(発光) */
+  sky: THREE.MeshBasicMaterial;
+  /** 窓ガラス */
+  glass: THREE.MeshPhysicalMaterial;
 }
 
 let cached: MuseumMaterials | null = null;
@@ -46,6 +50,15 @@ export function getMaterials(): MuseumMaterials {
     ceiling: new THREE.MeshStandardMaterial({ color: 0xf8f6f2, roughness: 1, metalness: 0 }),
     matteWhite: new THREE.MeshStandardMaterial({ color: 0xf4f2ee, roughness: 0.7, metalness: 0 }),
     matteBlack: new THREE.MeshStandardMaterial({ color: 0x1d1b18, roughness: 0.6, metalness: 0.1 }),
+    sky: new THREE.MeshBasicMaterial({ color: new THREE.Color(0xcfe3f5).multiplyScalar(2.2) }),
+    glass: new THREE.MeshPhysicalMaterial({
+      color: 0xdfe9ee,
+      transparent: true,
+      opacity: 0.12,
+      roughness: 0.05,
+      metalness: 0,
+      depthWrite: false,
+    }),
   };
   return cached;
 }

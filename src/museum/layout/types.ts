@@ -29,12 +29,23 @@ export interface LightSpot {
   color?: number;
 }
 
+export type WallFinish = 'plaster' | 'concrete';
+
+/** 天井の開口(天窓)。上に光井戸を立ち上げ、天面に空の面を張る */
+export interface Skylight extends Bounds {
+  /** 光井戸の高さ */
+  depth: number;
+}
+
 export interface RoomSpec {
   id: RoomId;
   name: string;
   bounds: Bounds;
   height: number;
   wallThickness?: number;
+  /** 壁の仕上げ(既定は漆喰) */
+  wall?: WallFinish;
+  skylight?: Skylight;
   openings: Opening[];
   /** 壁を作らない辺(隣室の壁を共有する) */
   openSides?: Side[];

@@ -9,10 +9,42 @@ import { expect, test } from '@playwright/test';
 const SHOTS = process.env.SHOTS;
 const OUT = 'Docs/screenshots';
 
+/**
+ * 任意の位置からの撮影: SHOT_POSES="name:x,z,yaw,pitch;name2:..." で指定する。
+ */
+const POSES = process.env.SHOT_POSES;
+
 test.describe('screenshots', () => {
-  test.skip(!SHOTS, 'SHOTS 環境変数が未設定');
+  test.skip(!SHOTS && !POSES, 'SHOTS / SHOT_POSES 環境変数が未設定');
+
+  test('指定した位置と向きから撮影する', async ({ page }) => {
+    test.skip(!POSES, 'SHOT_POSES が未設定');
+    test.setTimeout(300_000);
+    mkdirSync(OUT, { recursive: true });
+    await page.goto('/');
+    await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 30_000 });
+    await page.getByTestId('help-start').click();
+    for (const entry of POSES!.split(';')) {
+      const [name, nums] = entry.split(':');
+      const [x, z, yaw, pitch] = nums!.split(',').map(Number);
+      await page.evaluate(
+        ([x, z, yaw, pitch]) => {
+          const m = window.__museum!;
+          m.player.teleport({
+            position: m.player.position.clone().set(x!, 0, z!),
+            yaw: yaw!,
+            pitch: pitch!,
+          });
+        },
+        [x, z, yaw, pitch],
+      );
+      await page.waitForTimeout(600);
+      await page.screenshot({ path: `${OUT}/${name}.png` });
+    }
+  });
 
   test('各展示の推奨視点と種明かし後を撮影する', async ({ page }) => {
+    test.skip(!SHOTS, 'SHOTS が未設定');
     test.setTimeout(600_000);
     mkdirSync(OUT, { recursive: true });
     await page.goto('/');

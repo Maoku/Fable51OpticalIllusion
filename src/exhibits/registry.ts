@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 import type { ProximityTarget } from '../interaction/ProximityDetector';
 import type { Exhibit, ExhibitRoom, LoadContext } from './Exhibit';
 import { classicDefinitions } from './classic';
+import { fableDefinitions } from './fable';
 
 export interface ExhibitDefinition {
   id: string;
@@ -10,7 +11,7 @@ export interface ExhibitDefinition {
 }
 
 /** 館内に置く展示の一覧。順序が展示一覧の並び順になる */
-export const exhibitDefinitions: ExhibitDefinition[] = [...classicDefinitions];
+export const exhibitDefinitions: ExhibitDefinition[] = [...classicDefinitions, ...fableDefinitions];
 
 export const exhibitIds: string[] = exhibitDefinitions.map((d) => d.id);
 
@@ -32,6 +33,7 @@ export class ExhibitRegistry {
       await exhibit.load(ctx);
       ctx.scene.add(exhibit.object);
       ctx.museum.addColliders(exhibit.colliders);
+      if (exhibit.groundPatch) ctx.museum.groundPatches.push(exhibit.groundPatch);
       this.exhibits.push(exhibit);
       this.byId.set(def.id, exhibit);
       done++;

@@ -44,6 +44,8 @@ export interface Exhibit {
   readonly hint: HintEffect;
   /** 展示が占有するワールド座標の AABB(プレイヤーの通行不可) */
   readonly colliders: readonly AABB[];
+  /** 足元の高さを変える展示(傾いた床など)。範囲外なら null を返す */
+  groundPatch?: (x: number, z: number) => number | null;
   load(ctx: LoadContext): Promise<void>;
   update(delta: number, camera: THREE.Camera): void;
   dispose(): void;
@@ -73,6 +75,7 @@ export function viewpointInFront(
 export abstract class BaseExhibit implements Exhibit {
   readonly object = new THREE.Group();
   readonly colliders: AABB[] = [];
+  groundPatch?: (x: number, z: number) => number | null;
   protected loaded = false;
   private _hint: HintEffect = NOOP_EFFECT;
 

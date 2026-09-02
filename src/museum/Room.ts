@@ -97,13 +97,61 @@ export class Room {
 
   private buildCeiling(): void {
     const f = this.floorBounds();
-    const w = f.maxX - f.minX;
-    const d = f.maxZ - f.minZ;
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, d), this.mats.ceiling);
-    mesh.rotation.x = Math.PI / 2;
-    mesh.position.set((f.minX + f.maxX) / 2, this.spec.height, (f.minZ + f.maxZ) / 2);
-    mesh.name = 'ceiling';
-    this.group.add(mesh);
+    const h = this.spec.height;
+    const sky = this.spec.skylight;
+    const slab = (minX: number, maxX: number, minZ: number, maxZ: number) => {
+      if (maxX - minX <= 0 || maxZ - minZ <= 0) return;
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(maxX - minX, 0.2, maxZ - minZ),
+        this.mats.ceiling,
+      );
+      mesh.position.set((minX + maxX) / 2, h + 0.1, (minZ + maxZ) / 2);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.name = 'ceiling';
+      this.group.add(mesh);
+    };
+    if (!sky) {
+      slab(f.minX, f.maxX, f.minZ, f.maxZ);
+      return;
+    }
+    // 天窓の周りを 4 枚に分けて張る
+    slab(f.minX, f.maxX, f.minZ, sky.minZ);
+    slab(f.minX, f.maxX, sky.maxZ, f.maxZ);
+    slab(f.minX, sky.minX, sky.minZ, sky.maxZ);
+    slab(sky.maxX, f.maxX, sky.minZ, sky.maxZ);
+    // 光井戸
+    const t = 0.2;
+    const wells: [number, number, number, number][] = [
+      [sky.minX - t, sky.minX, sky.minZ - t, sky.maxZ + t],
+      [sky.maxX, sky.maxX + t, sky.minZ - t, sky.maxZ + t],
+      [sky.minX, sky.maxX, sky.minZ - t, sky.minZ],
+      [sky.minX, sky.maxX, sky.maxZ, sky.maxZ + t],
+    ];
+    for (const [x0, x1, z0, z1] of wells) {
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(x1 - x0, sky.depth, z1 - z0),
+        this.mats.ceiling,
+      );
+      mesh.position.set((x0 + x1) / 2, h + sky.depth / 2, (z0 + z1) / 2);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.name = 'skylightWell';
+      this.group.add(mesh);
+    }
+    // 空(発光面)。Bloom がわずかに滲む
+    const skyMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(sky.maxX - sky.minX + 2 * t, sky.maxZ - sky.minZ + 2 * t),
+      this.mats.sky,
+    );
+    skyMesh.rotation.x = Math.PI / 2;
+    skyMesh.position.set(
+      (sky.minX + sky.maxX) / 2,
+      h + sky.depth + 0.05,
+      (sky.minZ + sky.maxZ) / 2,
+    );
+    skyMesh.name = 'sky';
+    this.group.add(skyMesh);
   }
 
   private buildWall(side: Side): void {
@@ -123,7 +171,8 @@ export class Room {
       const mid = (r.u0 + r.u1) / 2;
       const cy = (r.y0 + r.y1) / 2;
       const geo = alongX ? new THREE.BoxGeometry(len, hgt, t) : new THREE.BoxGeometry(t, hgt, len);
-      const mesh = new THREE.Mesh(geo, this.mats.plaster);
+      const wallMat = this.spec.wall === 'concrete' ? this.mats.concrete : this.mats.plaster;
+      const mesh = new THREE.Mesh(geo, wallMat);
       const cx = alongX ? mid : fixed;
       const cz = alongX ? fixed : mid;
       mesh.position.set(cx, cy, cz);

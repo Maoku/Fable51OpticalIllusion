@@ -11,9 +11,12 @@ export const corridorSpec: RoomSpec = {
   height: 3.5,
   openSides: ['north', 'south'],
   floor: { minZ: -19.15, maxZ: -7.15 },
-  openings: [],
+  openings: [
+    // F4「窓の外の庭」を見る大窓(ガラス入り、通り抜け不可)
+    { side: 'east', center: -13, width: 6.4, height: 1.9, bottom: 0.85, glazed: true },
+  ],
   lights: [
-    { x: 0, z: -10 },
-    { x: 0, z: -16 },
+    { x: 0, z: -9.5, intensity: 12 },
+    { x: 0, z: -16.5, intensity: 12 },
   ],
 };

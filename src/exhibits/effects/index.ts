@@ -1,6 +1,9 @@
 export { WireframeReveal } from './WireframeReveal';
 export { GuideOverlay } from './GuideOverlay';
 export { CameraOrbit } from './CameraOrbit';
+export { CameraPath } from './CameraPath';
 export { MaterialSwap } from './MaterialSwap';
 export { LightChange } from './LightChange';
 export { SectionCut } from './SectionCut';
+export { TransformLerp } from './TransformLerp';
+export { Reveal } from './Reveal';

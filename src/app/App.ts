@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { CompositeInput } from '../input/CompositeInput';
 import { KeyboardMouseInput } from '../input/KeyboardMouseInput';
 import { TouchInput } from '../input/TouchInput';
@@ -18,6 +19,7 @@ import { LoadingScreen } from '../ui/LoadingScreen';
 import { TouchControls } from '../ui/TouchControls';
 import { h, uiRoot } from '../ui/dom';
 import { Loop } from './Loop';
+import { PostProcess } from './PostProcess';
 import { QualityController, readGpuName } from './Quality';
 import { bus } from './events';
 
@@ -29,6 +31,7 @@ export class App {
   readonly loop: Loop;
   readonly canvas: HTMLCanvasElement;
   readonly quality: QualityController;
+  readonly post: PostProcess;
   readonly keyboard = new KeyboardMouseInput();
   readonly touch = new TouchInput();
   readonly input: CompositeInput;
@@ -73,6 +76,7 @@ export class App {
     this.input = new CompositeInput([this.keyboard, this.touch]);
     this.player = new PlayerController(this.camera, this.input);
 
+    this.post = new PostProcess(this.renderer, this.scene, this.camera);
     this.loop = new Loop(() => this.render());
     this.loop.timeScale = readTimeScale();
 
@@ -86,9 +90,24 @@ export class App {
     await nextFrame();
 
     this.scene.background = new THREE.Color(0xe9e4dc);
+    // 反射用の環境(手続き生成)。水面や金属にうっすら映り込む
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.scene.environmentIntensity = 0.35;
+    pmrem.dispose();
+
     this.museum = new Museum();
     this.scene.add(this.museum.group);
     this.player.colliders = this.museum.colliders;
+    this.player.groundAt = (x, z) => this.museum.groundAt(x, z);
+    for (const sky of this.museum.skyLights) sky.applyQuality(this.quality.settings);
+    this.post.configure(this.quality.settings);
+    bus.on('quality:change', ({ tier }) => {
+      for (const sky of this.museum.skyLights) sky.applyQuality(this.quality.settings);
+      this.post.configure(this.quality.settings);
+      this.post.refresh();
+      void tier;
+    });
     this.player.teleport(this.museum.spawn);
     loading.setProgress(0.25, 'フォントを読み込んでいます…');
     await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 2500))]);
@@ -126,6 +145,7 @@ export class App {
     this.loop.add(this.hints);
     this.loop.add(this.player);
     this.loop.add({ update: (delta) => this.registry.update(delta, this.camera) });
+    for (const sky of this.museum.skyLights) this.loop.add(sky);
     this.loop.add(this.touchControls);
     this.loop.start();
 
@@ -238,11 +258,12 @@ export class App {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
+    this.post?.setSize(width, height);
     bus.emit('app:resize', { width, height });
   }
 
   render(): void {
-    this.renderer.render(this.scene, this.camera);
+    this.post.render();
   }
 }
 

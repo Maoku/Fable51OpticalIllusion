@@ -30,8 +30,10 @@ export class PlayerController implements Updatable {
   /** 移動のみ禁止(演出中の視点固定など) */
   frozen = false;
   colliders: readonly AABB[] = [];
-  /** 足元の高さ(将来の段差用) */
+  /** 足元の高さ(groundAt が未設定のとき) */
   groundY = 0;
+  /** 足元の高さを座標から返す(傾いた床など) */
+  groundAt: ((x: number, z: number) => number) | null = null;
   /** 演出がカメラを直接動かすときの上書き。null なら通常の一人称 */
   cameraOverride: { position: THREE.Vector3; lookAt: THREE.Vector3 } | null = null;
 
@@ -150,7 +152,9 @@ export class PlayerController implements Updatable {
         this.position.z = this.tmpPos.z;
       }
     }
-    this.position.y = this.groundY;
+    const ground = this.groundAt ? this.groundAt(this.position.x, this.position.z) : this.groundY;
+    // 段差は滑らかに追従する
+    this.position.y += (ground - this.position.y) * Math.min(1, delta * 14);
 
     if (this.enabled && input.interactPressed) {
       bus.emit('input:interact', undefined);

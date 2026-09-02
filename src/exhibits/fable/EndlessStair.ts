@@ -199,32 +199,43 @@ export class EndlessStair extends BaseExhibit {
           stepMat,
         );
       }
-      // フライトの天井(傾いた板)
-      const slope = (run: number) => Math.atan2(flightH, run);
-      const slab = (
-        cx: number,
-        cy: number,
-        cz: number,
-        len: number,
-        rotY: number,
-        sign: number,
-        run: number,
-      ) => {
-        const mesh = new THREE.Mesh(new THREE.BoxGeometry(len, 0.12, S.w + 0.1), ceilMat);
-        mesh.position.set(cx, cy, cz);
+      // フライトの天井(傾いた板)。下面が登り方向へ上がる線に一致するように置く。
+      // 向きと傾きは端点から導くので、フライトごとに符号を書き分けて取り違えることがない。
+      const slab = (x0: number, y0: number, z0: number, x1: number, y1: number, z1: number) => {
+        const dx = x1 - x0;
+        const dy = y1 - y0;
+        const dz = z1 - z0;
+        const len = Math.hypot(dx, dy, dz);
+        // 回転順 YXZ は Ry·Rz なので、ローカル +x は (cosθcosφ, sinθ, -cosθsinφ) を向く
+        const tilt = Math.asin(dy / len);
+        const turn = Math.atan2(-dz, dx);
+        const half = 0.06; // 板の厚みの半分
+        // 板の法線(ローカル +y)の向きへ半分だけ持ち上げ、下面を端点の線に合わせる
+        const nx = -Math.sin(tilt) * Math.cos(turn);
+        const ny = Math.cos(tilt);
+        const nz = Math.sin(tilt) * Math.sin(turn);
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(len, half * 2, S.w + 0.1), ceilMat);
+        mesh.position.set(
+          (x0 + x1) / 2 + nx * half,
+          (y0 + y1) / 2 + ny * half,
+          (z0 + z1) / 2 + nz * half,
+        );
         mesh.rotation.order = 'YXZ';
-        mesh.rotation.y = rotY;
-        mesh.rotation.z = sign * slope(run);
+        mesh.rotation.y = turn;
+        mesh.rotation.z = tilt;
         this.object.add(mesh);
         fadeable.push(mesh);
       };
-      const lenZ = Math.hypot(runZ, flightH);
-      const lenX = Math.hypot(runX, flightH);
-      const midH = S.headroom + flightH / 2 + 0.1;
-      slab(S.ax - S.w / 2, base + midH, 0, lenZ, Math.PI / 2, 1, runZ);
-      slab(0, base + flightH + midH, -(S.az - S.w / 2), lenX, 0, 1, runX);
-      slab(-(S.ax - S.w / 2), base + flightH * 2 + midH, 0, lenZ, -Math.PI / 2, 1, runZ);
-      slab(0, base + flightH * 3 + midH, S.az - S.w / 2, lenX, Math.PI, 1, runX);
+      // 天井の下面の高さ(stairCeilingHeight と同じ定義)
+      const ceil = (h: number) => base + h + S.headroom;
+      const eastX = S.ax - S.w / 2;
+      const northZ = -(S.az - S.w / 2);
+      const westX = -(S.ax - S.w / 2);
+      const southZ = S.az - S.w / 2;
+      slab(eastX, ceil(0), inZ, eastX, ceil(flightH), -inZ);
+      slab(inX, ceil(flightH), northZ, -inX, ceil(flightH * 2), northZ);
+      slab(westX, ceil(flightH * 2), -inZ, westX, ceil(flightH * 3), inZ);
+      slab(-inX, ceil(flightH * 3), southZ, inX, ceil(flightH * 4), southZ);
     }
     // 最上段の終端(到達不能)
     const topH = S.loop * S.loops;

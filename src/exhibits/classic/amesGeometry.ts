@@ -259,6 +259,42 @@ export function figureApparentPositions(p: AmesParams): [THREE.Vector3, THREE.Ve
   ];
 }
 
+export interface AmesEqualView {
+  /** カメラの位置(ローカル座標) */
+  position: THREE.Vector3;
+  /** 注視点。二体の胴の高さの中点 */
+  target: THREE.Vector3;
+  /** カメラから二体までの距離(左右で等しい) */
+  figureDistance: number;
+}
+
+/**
+ * 二体の人形から等距離に立つ視点を返す。
+ *
+ * 覗き窓からは、左奥の人形の方が遠いので小さく見える。斜めから見ても距離が
+ * 違ったままなので、見かけの大きさは揃わない。二体からの距離が等しくなる点
+ * (= 二体を結ぶ線分の垂直二等分面の上)に立つと、同じ身長が同じ大きさに
+ * 見えるので、それ自体が種明かしになる。
+ *
+ * @param spread 二体の中点から離れる距離
+ * @param lift 手前へ向かう方向に混ぜる上向き成分
+ */
+export function equalDistanceViewpoint(p: AmesParams, spread = 4.6, lift = 0.25): AmesEqualView {
+  const [leftApparent, rightApparent] = figureApparentPositions(p);
+  const half = p.figureHeight / 2;
+  const left = amesTransform(leftApparent, p.eye, p.skew);
+  const right = amesTransform(rightApparent, p.eye, p.skew);
+  left.y += half;
+  right.y += half;
+  const target = left.clone().add(right).multiplyScalar(0.5);
+  const along = right.clone().sub(left);
+  // along に直交し、鑑賞者側(+z)へ向かう方向。along.x は左右に開いているので 0 にならない
+  const vx = -(along.y * lift + along.z) / along.x;
+  const direction = new THREE.Vector3(vx, lift, 1).normalize();
+  const position = target.clone().addScaledVector(direction, spread);
+  return { position, target, figureDistance: position.distanceTo(left) };
+}
+
 /** 実際の部屋の範囲(AABB、ローカル座標) */
 export function realBounds(p: AmesParams): THREE.Box3 {
   const box = new THREE.Box3();

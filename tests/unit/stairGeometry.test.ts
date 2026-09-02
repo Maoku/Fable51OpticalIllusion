@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   STAIR,
+  stairCeilingHeight,
   stairHeight,
   stairRegion,
   stairSeamShift,
@@ -76,5 +77,69 @@ describe('stairSeamShift', () => {
     const before = stairHeight(2.4, z, S.loop + 1.0)!;
     const after = stairHeight(2.4, z, S.loop + 1.0 - S.loop)!;
     expect(before - after).toBeCloseTo(S.loop);
+  });
+});
+
+describe('stairCeilingHeight', () => {
+  const S2 = STAIR;
+  /** 各フライトの中心線上の点を、進み具合 t(0..1)から返す */
+  const inX = S2.ax - S2.w;
+  const inZ = S2.az - S2.w;
+  const onFlight: Record<string, (t: number) => [number, number]> = {
+    A: (t) => [S2.ax - S2.w / 2, inZ - t * inZ * 2],
+    B: (t) => [inX - t * inX * 2, -(S2.az - S2.w / 2)],
+    C: (t) => [-(S2.ax - S2.w / 2), -inZ + t * inZ * 2],
+    D: (t) => [-inX + t * inX * 2, S2.az - S2.w / 2],
+  };
+
+  it('踊り場では床から headroom ぶん上にある', () => {
+    expect(stairCeilingHeight(2.4, 2.3, 0)).toBeCloseTo(S2.headroom);
+    expect(stairCeilingHeight(2.4, -2.3, 1)).toBeCloseTo(flightH + S2.headroom);
+    expect(stairCeilingHeight(-2.4, 2.3, 3)).toBeCloseTo(flightH * 3 + S2.headroom);
+  });
+
+  it('どのフライトでも、足元から見た頭上の高さが目の高さを十分に上回る', () => {
+    const EYE = 1.6;
+    for (const [name, at] of Object.entries(onFlight)) {
+      for (let i = 0; i < S2.steps; i++) {
+        const [x, z] = at((i + 0.5) / S2.steps);
+        const floor = stairHeight(x, z, 1)!;
+        const ceil = stairCeilingHeight(x, z, 1)!;
+        expect(ceil - floor, `フライト ${name} の ${i + 1} 段目`).toBeGreaterThan(EYE + 0.4);
+      }
+    }
+  });
+
+  it('4 本のフライトの頭上の高さは揃っている', () => {
+    const heights: number[] = [];
+    for (const at of Object.values(onFlight)) {
+      for (let i = 0; i < S2.steps; i++) {
+        const [x, z] = at((i + 0.5) / S2.steps);
+        heights.push(stairCeilingHeight(x, z, 1)! - stairHeight(x, z, 1)!);
+      }
+    }
+    expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1e-9);
+  });
+
+  it('踊り場とフライトの境目で天井が連続している', () => {
+    for (const at of Object.values(onFlight)) {
+      for (const t of [0.001, 0.999]) {
+        const [x, z] = at(t);
+        const ceil = stairCeilingHeight(x, z, 1)!;
+        // 勾配線 + headroom なので、隣の踊り場の天井とほぼ同じ高さになる
+        const slope = stairRegion(x, z) as { slopeHeight: number };
+        expect(ceil).toBeCloseTo(slope.slopeHeight + S2.headroom, 9);
+      }
+    }
+  });
+
+  it('現在の高さに近い周を選ぶ', () => {
+    expect(stairCeilingHeight(2.4, 2.3, 0)).toBeCloseTo(S2.headroom);
+    expect(stairCeilingHeight(2.4, 2.3, S2.loop)).toBeCloseTo(S2.loop + S2.headroom);
+  });
+
+  it('吹き抜けの中心や外は null', () => {
+    expect(stairCeilingHeight(0, 0, 0)).toBeNull();
+    expect(stairCeilingHeight(5, 0, 0)).toBeNull();
   });
 });

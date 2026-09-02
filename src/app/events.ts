@@ -9,6 +9,8 @@ export interface MuseumEvents extends Record<string, unknown> {
   'input:interact': undefined;
   /** PointerLock の取得・解除 */
   'input:lockchange': { locked: boolean };
+  /** 一度でも視点を回した(操作案内を消す) */
+  'input:looked': undefined;
   /** タッチ操作が主入力になった / 解除された */
   'input:touchmode': { touch: boolean };
   'quality:change': { tier: QualityTier; pixelRatio: number };

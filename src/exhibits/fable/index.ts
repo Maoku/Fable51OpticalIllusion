@@ -95,7 +95,8 @@ export const fableDefinitions: ExhibitDefinition[] = [
           Math.PI / 2,
           2.6,
           1.3,
-          0.02,
+          // 水面は水平から 5°〜23° 下に見えるので、その帯を画面の中央寄りへ持ってくる
+          -0.15,
           new THREE.Vector3(0.7, 0, WINDOW.z),
         ),
       ),
@@ -130,6 +131,7 @@ export const fableDefinitions: ExhibitDefinition[] = [
   {
     id: 'inverted-pond',
     room: 'fable',
-    create: () => new InvertedPond(meta('inverted-pond', -6, -27.5, -Math.PI / 2, 3.2, 2.4, -0.34)),
+    // 彫刻の反射が水面に収まる距離と、その反射を画面の中央へ持ってくる俯角
+    create: () => new InvertedPond(meta('inverted-pond', -6, -27.5, -Math.PI / 2, 3.4, 2.1, -0.46)),
   },
 ];

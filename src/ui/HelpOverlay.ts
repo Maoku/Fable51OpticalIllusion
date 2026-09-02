@@ -3,7 +3,6 @@ import { h, uiRoot } from './dom';
 
 export interface HelpOverlayOptions {
   touch: boolean;
-  onStart: () => void;
   onCredits?: () => void;
 }
 
@@ -66,7 +65,7 @@ export class HelpOverlay {
         ]
       : [
           ['移動', 'W A S D / 矢印キー(Shift で早歩き)'],
-          ['見回す', 'マウス(クリックで視点操作を開始、Esc で解除)'],
+          ['見回す', 'マウスの右ボタン(左ボタンでも可)を押しながらドラッグ'],
           ['ヒント', 'E キー、または「ヒントを見る」ボタン'],
           ['展示一覧', 'Tab キー、または右上のメニュー'],
         ];
@@ -87,7 +86,6 @@ export class HelpOverlay {
     this.open = false;
     this.el.classList.add('is-hidden');
     bus.emit('ui:modal', { open: false, id: 'help' });
-    this.opts.onStart();
   }
 
   toggle(): void {

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { PostProcess } from '../app/PostProcess';
 import type { QualitySettings } from '../app/Quality';
 import type { Museum } from '../museum/Museum';
 import type { AABB } from '../player/Collision';
@@ -30,11 +31,22 @@ export interface ExhibitMeta {
 
 export interface LoadContext {
   quality: QualitySettings;
+  /** ポストプロセス。展示から AO や被写界深度を一時的に変える */
+  post: PostProcess;
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   museum: Museum;
   player: PlayerController;
+}
+
+/**
+ * 視界の傾き。カメラの向きにワールド座標でこの回転を掛けると、
+ * 傾いた部屋の床と壁が画面の水平・垂直に揃う。
+ */
+export interface CameraFrame {
+  axis: THREE.Vector3;
+  angle: number;
 }
 
 export interface Exhibit {
@@ -46,6 +58,10 @@ export interface Exhibit {
   readonly colliders: readonly AABB[];
   /** 足元の高さを変える展示(傾いた床など)。範囲外なら null を返す */
   groundPatch?: (x: number, z: number, currentY: number) => number | null;
+  /** 視界を傾ける展示(傾きの間)。範囲外なら null を返す */
+  framePatch?: (x: number, z: number) => CameraFrame | null;
+  /** この配下だけにフォグを効かせる(scene.fog は展示側で設定する) */
+  fogScope?: THREE.Object3D;
   load(ctx: LoadContext): Promise<void>;
   update(delta: number, camera: THREE.Camera): void;
   dispose(): void;
@@ -76,6 +92,8 @@ export abstract class BaseExhibit implements Exhibit {
   readonly object = new THREE.Group();
   readonly colliders: AABB[] = [];
   groundPatch?: (x: number, z: number, currentY: number) => number | null;
+  framePatch?: (x: number, z: number) => CameraFrame | null;
+  fogScope?: THREE.Object3D;
   protected loaded = false;
 
   /** ワールド座標をローカル座標へ(toWorld の逆) */

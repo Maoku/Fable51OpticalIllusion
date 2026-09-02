@@ -1,32 +1,42 @@
 import type { InputSource, LookDelta, MoveVector } from './InputSource';
+import { MouseLookCore } from './MouseLook';
 
 const INTERACT_CODES = new Set(['KeyE', 'Enter', 'Space']);
 
 /**
- * PC 向け入力。WASD / 矢印で移動、マウスで視点操作。
- * PointerLock が取れれば使用し、拒否された場合はドラッグルックにフォールバックする。
+ * PC 向け入力。WASD / 矢印で移動、マウスのボタンを押しながらのドラッグで視点操作。
+ *
+ * 既定では PointerLock を使わない。ロック中はカーソルが消えて HUD のボタンが押せず、
+ * UI 操作のたびに Esc で解除する必要があったため。ロックしたい場合は L キーで切り替える。
  */
 export class KeyboardMouseInput implements InputSource {
   readonly move: MoveVector = { x: 0, y: 0 };
+  readonly look = new MouseLookCore();
   interactPressed = false;
   sprint = false;
-  /** ラジアン / ピクセル */
-  sensitivity = 0.0022;
   /** PointerLock を取得した状態か */
   locked = false;
-  /** PointerLock が使えず、ドラッグルックで動作しているか */
-  dragFallback = false;
-  /** クリックで PointerLock を要求するか(UI 表示中は false にする) */
-  autoLock = true;
+  /** PointerLock への切り替えを許可するか(UI 表示中は false にする) */
+  lockAllowed = true;
   onLockChange?: (locked: boolean) => void;
+  /** ドラッグの開始・終了(カーソルの見た目と操作案内に使う) */
+  onDragChange?: (dragging: boolean) => void;
 
   private readonly keys = new Set<string>();
-  private yaw = 0;
-  private pitch = 0;
   private el: HTMLElement | null = null;
-  private dragging = false;
-  private lastX = 0;
-  private lastY = 0;
+
+  /** ラジアン / ピクセル */
+  get sensitivity(): number {
+    return this.look.sensitivity;
+  }
+
+  set sensitivity(v: number) {
+    this.look.sensitivity = v;
+  }
+
+  get dragging(): boolean {
+    return this.look.dragging;
+  }
 
   attach(el: HTMLElement): void {
     this.detach();
@@ -35,6 +45,7 @@ export class KeyboardMouseInput implements InputSource {
     window.addEventListener('keyup', this.onKeyUp);
     window.addEventListener('blur', this.onBlur);
     el.addEventListener('pointerdown', this.onPointerDown);
+    el.addEventListener('contextmenu', preventDefault);
     window.addEventListener('pointermove', this.onPointerMove);
     window.addEventListener('pointerup', this.onPointerUp);
     window.addEventListener('pointercancel', this.onPointerUp);
@@ -48,6 +59,7 @@ export class KeyboardMouseInput implements InputSource {
     window.removeEventListener('keyup', this.onKeyUp);
     window.removeEventListener('blur', this.onBlur);
     this.el.removeEventListener('pointerdown', this.onPointerDown);
+    this.el.removeEventListener('contextmenu', preventDefault);
     window.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('pointerup', this.onPointerUp);
     window.removeEventListener('pointercancel', this.onPointerUp);
@@ -55,37 +67,32 @@ export class KeyboardMouseInput implements InputSource {
     document.removeEventListener('pointerlockerror', this.onLockError);
     this.el = null;
     this.keys.clear();
+    this.look.reset();
     this.updateMove();
   }
 
   consumeLook(): LookDelta {
-    const d = { yaw: this.yaw, pitch: this.pitch };
-    this.yaw = 0;
-    this.pitch = 0;
-    return d;
+    return this.look.consumeLook();
   }
 
   endFrame(): void {
     this.interactPressed = false;
   }
 
-  /** PointerLock を要求する。取れない環境ではドラッグルックに切り替える */
+  /** PointerLock を要求する(L キー用。既定の操作では使わない) */
   requestLock(): void {
     const el = this.el;
-    if (!el || this.locked || this.dragFallback) return;
-    if (typeof el.requestPointerLock !== 'function') {
-      this.dragFallback = true;
-      return;
-    }
+    if (!el || this.locked || !this.lockAllowed) return;
+    if (typeof el.requestPointerLock !== 'function') return;
     try {
       const result = el.requestPointerLock() as unknown;
       if (result && typeof (result as Promise<void>).catch === 'function') {
         (result as Promise<void>).catch(() => {
-          this.dragFallback = true;
+          /* 取れない環境ではドラッグのまま使う */
         });
       }
     } catch {
-      this.dragFallback = true;
+      /* 同上 */
     }
   }
 
@@ -93,6 +100,11 @@ export class KeyboardMouseInput implements InputSource {
     if (this.locked && typeof document.exitPointerLock === 'function') {
       document.exitPointerLock();
     }
+  }
+
+  toggleLock(): void {
+    if (this.locked) this.releaseLock();
+    else this.requestLock();
   }
 
   private readonly onKeyDown = (e: KeyboardEvent): void => {
@@ -103,6 +115,7 @@ export class KeyboardMouseInput implements InputSource {
       this.interactPressed = true;
       e.preventDefault();
     }
+    if (e.code === 'KeyL') this.toggleLock();
     this.updateMove();
   };
 
@@ -113,6 +126,7 @@ export class KeyboardMouseInput implements InputSource {
 
   private readonly onBlur = (): void => {
     this.keys.clear();
+    this.setDragging(false);
     this.updateMove();
   };
 
@@ -127,54 +141,72 @@ export class KeyboardMouseInput implements InputSource {
     this.sprint = k.has('ShiftLeft') || k.has('ShiftRight');
   }
 
+  private setDragging(dragging: boolean): void {
+    if (this.look.dragging === dragging) return;
+    this.look.dragging = dragging;
+    this.onDragChange?.(dragging);
+  }
+
   private readonly onPointerDown = (e: PointerEvent): void => {
-    if (e.pointerType !== 'mouse' || e.button !== 0) return;
-    if (this.locked) return;
-    if (this.autoLock && !this.dragFallback) {
-      this.requestLock();
-    }
-    // PointerLock が取れるまでの間、あるいはフォールバック時はドラッグで回す
-    this.dragging = true;
-    this.lastX = e.clientX;
-    this.lastY = e.clientY;
+    if (e.pointerType !== 'mouse' || this.locked) return;
+    const before = this.look.dragging;
+    this.look.handle({ type: 'down', button: e.button, x: e.clientX, y: e.clientY });
+    if (this.look.dragging === before) return;
+    // ドラッグ中は UI の上を通っても回転を続ける。
+    // 対応するポインタが既にない場合は例外になるので、握り潰して回転だけ続ける
+    capturePointer(this.el, e.pointerId, true);
+    this.onDragChange?.(true);
+    e.preventDefault();
   };
 
   private readonly onPointerMove = (e: PointerEvent): void => {
     if (e.pointerType !== 'mouse') return;
     if (this.locked) {
-      this.yaw -= e.movementX * this.sensitivity;
-      this.pitch -= e.movementY * this.sensitivity;
+      this.look.addDelta(e.movementX, e.movementY);
       return;
     }
-    if (this.dragging) {
-      const dx = e.clientX - this.lastX;
-      const dy = e.clientY - this.lastY;
-      this.lastX = e.clientX;
-      this.lastY = e.clientY;
-      this.yaw -= dx * this.sensitivity;
-      this.pitch -= dy * this.sensitivity;
-    }
+    const before = this.look.dragging;
+    this.look.handle({ type: 'move', buttons: e.buttons, x: e.clientX, y: e.clientY });
+    if (before && !this.look.dragging) this.onDragChange?.(false);
   };
 
   private readonly onPointerUp = (e: PointerEvent): void => {
     if (e.pointerType !== 'mouse') return;
-    this.dragging = false;
+    const before = this.look.dragging;
+    this.look.handle({ type: 'up', button: e.button, x: e.clientX, y: e.clientY });
+    if (before && !this.look.dragging) {
+      capturePointer(this.el, e.pointerId, false);
+      this.onDragChange?.(false);
+    }
   };
 
   private readonly onLockChangeEvent = (): void => {
     const locked = document.pointerLockElement === this.el && this.el !== null;
     if (locked !== this.locked) {
       this.locked = locked;
-      this.dragging = false;
+      this.setDragging(false);
       this.onLockChange?.(locked);
     }
   };
 
   private readonly onLockError = (): void => {
-    this.dragFallback = true;
     this.locked = false;
     this.onLockChange?.(false);
   };
+}
+
+function preventDefault(e: Event): void {
+  e.preventDefault();
+}
+
+/** ポインタキャプチャの取得 / 解放。対象のポインタが既にない環境では何もしない */
+function capturePointer(el: HTMLElement | null, pointerId: number, capture: boolean): void {
+  try {
+    if (capture) el?.setPointerCapture?.(pointerId);
+    else el?.releasePointerCapture?.(pointerId);
+  } catch {
+    /* noop */
+  }
 }
 
 function isEditableTarget(target: EventTarget | null): boolean {

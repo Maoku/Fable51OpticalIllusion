@@ -7,7 +7,7 @@ import { CompositeHintEffect } from '../HintEffect';
 import { CameraOrbit } from '../effects/CameraOrbit';
 import { SectionCut } from '../effects/SectionCut';
 
-export const FACE = { width: 0.56, height: 0.76, relief: 0.13, segments: 72 };
+export const FACE = { width: 0.56, height: 0.76, relief: 0.16, segments: 72 };
 
 /** 顔のレリーフ。sign = +1 で凸(通常)、-1 で凹(くぼんだ顔) */
 export function createFaceGeometry(sign: 1 | -1): THREE.BufferGeometry {
@@ -40,9 +40,12 @@ export class HollowFace extends BaseExhibit {
     panel.position.set(0, 1.55, 0.03);
     this.object.add(panel);
 
+    // 陰影の勾配が読めるよう、反射率は中間調の石膏くらいに抑える。
+    // 白に近いと光が飽和して起伏が平らに見え、凹凸の手がかりが消える
     const skin = new THREE.MeshStandardMaterial({
-      color: 0xe7d9cb,
-      roughness: 0.75,
+      color: 0xb8a894,
+      roughness: 0.9,
+      envMapIntensity: 0.15,
       side: THREE.DoubleSide,
     });
     const hollow = new THREE.Mesh(createFaceGeometry(-1), skin);
@@ -69,9 +72,26 @@ export class HollowFace extends BaseExhibit {
       bar(bw, fh, fw / 2 + bw / 2, 0),
     ];
 
-    // 上からのスポット(通常の展示照明)。凹面なので陰影が反転し、脳がそれを凸として解釈する
-    const spot = new THREE.SpotLight(0xfff1dc, 26, 6, Math.PI / 8, 0.5, 1.6);
-    spot.position.set(0.25, 3.2, 1.2);
+    // 目: 眼窩の底に暗い円盤を置く。顔として読み取りやすくなり、
+    // 「顔は凸である」という前提が強く働いて錯視が効きやすくなる
+    const irisMat = new THREE.MeshStandardMaterial({ color: 0x4a4038, roughness: 0.55 });
+    const eyeU = 0.34;
+    const eyeV = 0.2;
+    const eyeZ = 0.06 + depth - faceHeight(eyeU, eyeV) * FACE.relief + 0.004;
+    const eyes: THREE.Mesh[] = [];
+    for (const side of [-1, 1]) {
+      const eye = new THREE.Mesh(new THREE.CircleGeometry(0.03, 24), irisMat);
+      eye.scale.y = 0.75;
+      eye.position.set(side * eyeU * (FACE.width / 2), 1.55 + eyeV * (FACE.height / 2), eyeZ);
+      this.object.add(eye);
+      eyes.push(eye);
+    }
+
+    // 左斜め上からのスポット。正面から当てると起伏が平らに見えるので、
+    // 鼻筋と眼窩を横切る向きに落として陰影をはっきりさせる。
+    // 凹面なのでその陰影は反転しており、脳はそれを凸として解釈する
+    const spot = new THREE.SpotLight(0xfff1dc, 12, 6, Math.PI / 9, 0.35, 1.6);
+    spot.position.set(-1.1, 2.9, 0.9);
     spot.target = hollow;
     this.object.add(spot);
 
@@ -103,7 +123,7 @@ export class HollowFace extends BaseExhibit {
             radiusScale: 0.75,
             durationMs: 2200,
           }),
-          new SectionCut([hollow, ...bars], {
+          new SectionCut([hollow, ...bars, ...eyes], {
             normal,
             start: startPt,
             end: center.clone(),

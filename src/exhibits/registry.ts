@@ -34,6 +34,7 @@ export class ExhibitRegistry {
       ctx.scene.add(exhibit.object);
       ctx.museum.addColliders(exhibit.colliders);
       if (exhibit.groundPatch) ctx.museum.groundPatches.push(exhibit.groundPatch);
+      if (exhibit.framePatch) ctx.museum.framePatches.push(exhibit.framePatch);
       this.exhibits.push(exhibit);
       this.byId.set(def.id, exhibit);
       done++;

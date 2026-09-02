@@ -10,6 +10,7 @@ import { HintController } from '../interaction/HintController';
 import { ProximityDetector } from '../interaction/ProximityDetector';
 import { LightCuller } from '../museum/LightCuller';
 import { Museum } from '../museum/Museum';
+import { applyFogScope } from '../museum/fogScope';
 import { createViewpointMark } from '../museum/ViewpointMark';
 import { PlayerController } from '../player/PlayerController';
 import { Credits } from '../ui/Credits';
@@ -112,6 +113,7 @@ export class App {
     this.scene.add(this.museum.group);
     this.player.colliders = this.museum.colliders;
     this.player.groundAt = (x, z, y) => this.museum.groundAt(x, z, y);
+    this.player.frameAt = (x, z) => this.museum.frameAt(x, z);
     for (const sky of this.museum.skyLights) sky.applyQuality(this.quality.settings);
     this.post.configure(this.quality.settings);
     bus.on('quality:change', ({ tier }) => {
@@ -132,6 +134,7 @@ export class App {
     await this.registry.loadAll(
       {
         quality: this.quality.settings,
+        post: this.post,
         renderer: this.renderer,
         scene: this.scene,
         camera: this.camera,
@@ -145,6 +148,12 @@ export class App {
         this.scene.add(createViewpointMark(e.meta.viewpoint.position, e.meta.viewpoint.yaw));
       }
     }
+    // フォグの範囲を絞る。fog はシェーダの define なので、シーンに置くものが
+    // 出そろってから、シェーダを用意する前に 1 回だけ確定させる
+    const fogScopes = this.registry.exhibits
+      .map((e) => e.fogScope)
+      .filter((o): o is THREE.Object3D => o !== undefined);
+    if (fogScopes.length > 0) applyFogScope(this.scene, fogScopes);
     loading.setProgress(0.88, '入力を準備しています…');
     await nextFrame();
 
@@ -215,6 +224,10 @@ export class App {
   private setupInput(): void {
     this.input.attach(this.canvas);
     this.keyboard.onLockChange = (locked) => bus.emit('input:lockchange', { locked });
+    this.keyboard.onDragChange = (dragging) => {
+      document.body.classList.toggle('is-dragging', dragging);
+      if (dragging) bus.emit('input:looked', undefined);
+    };
     this.touch.onFirstTouch = () => this.setTouchMode(true);
     if (isTouchPrimary()) this.setTouchMode(true);
 
@@ -223,7 +236,7 @@ export class App {
       else this.modals.delete(id);
       const anyOpen = this.modals.size > 0;
       this.player.enabled = !anyOpen;
-      this.keyboard.autoLock = !anyOpen;
+      this.keyboard.lockAllowed = !anyOpen;
       if (anyOpen) this.keyboard.releaseLock();
     });
   }
@@ -257,10 +270,7 @@ export class App {
 
   private setupUi(): void {
     this.touchControls = new TouchControls(this.touch);
-    this.hud = new Hud({
-      isLocked: () => this.keyboard.locked,
-      isDragFallback: () => this.keyboard.dragFallback,
-    });
+    this.hud = new Hud();
     this.hintPanel = new HintPanel();
     this.credits = new Credits();
     this.list = new ExhibitList(this.registry.definitions.map((d) => ({ id: d.id, room: d.room })));
@@ -272,9 +282,6 @@ export class App {
     });
     this.help = new HelpOverlay({
       touch: isTouchPrimary(),
-      onStart: () => {
-        if (!this.touchMode) this.keyboard.requestLock();
-      },
       onCredits: () => this.credits.show(),
     });
 

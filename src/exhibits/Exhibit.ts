@@ -22,6 +22,8 @@ export interface ExhibitMeta {
   /** 展示の正面が向く yaw(0 = -z) */
   facing: number;
   triggerRadius: number;
+  /** 近接判定の中心(省略時は position)。視点依存の展示は推奨視点の近くに置く */
+  triggerCenter?: THREE.Vector3;
   /** 推奨視点。ワープ先および演出中の固定位置 */
   viewpoint?: Viewpoint;
 }

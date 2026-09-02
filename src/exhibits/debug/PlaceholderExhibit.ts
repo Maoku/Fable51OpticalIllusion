@@ -246,13 +246,13 @@ export function createPlaceholderDefinitions(): ExhibitDefinition[] {
     distance = 2.0,
   ): ExhibitDefinition => ({
     id,
-    room: 'classic',
+    room: 'fable',
     create: () => {
       const position = new THREE.Vector3(x, 0, z);
       return new PlaceholderExhibit(
         {
           id,
-          room: 'classic',
+          room: 'fable',
           position,
           facing,
           triggerRadius: 2.8,
@@ -263,11 +263,11 @@ export function createPlaceholderDefinitions(): ExhibitDefinition[] {
     },
   });
   return [
-    make('demo-wireframe', 'wireframe', -5, -5.5, Math.PI, 1.8),
-    make('demo-guide', 'guide', 5, -6.8, Math.PI, 2.2),
-    make('demo-orbit', 'orbit', -7.5, 0, -Math.PI / 2, 2.2),
-    make('demo-material', 'material', 7.5, 0, Math.PI / 2, 1.8),
-    make('demo-light', 'light', -5, 5.5, 0, 1.8),
-    make('demo-section', 'section', 5, 5.5, 0, 1.6),
+    make('demo-wireframe', 'wireframe', -6, -20.5, 0, 1.8),
+    make('demo-guide', 'guide', -9.85, -29, -Math.PI / 2, 2.2),
+    make('demo-orbit', 'orbit', -6, -37.5, Math.PI, 2.2),
+    make('demo-material', 'material', 6, -37.5, Math.PI, 1.8),
+    make('demo-light', 'light', 6, -20.5, 0, 1.8),
+    make('demo-section', 'section', 9.5, -29, Math.PI / 2, 1.6),
   ];
 }

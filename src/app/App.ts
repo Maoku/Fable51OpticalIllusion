@@ -3,12 +3,14 @@ import { CompositeInput } from '../input/CompositeInput';
 import { KeyboardMouseInput } from '../input/KeyboardMouseInput';
 import { TouchInput } from '../input/TouchInput';
 import { hasTouch, isMobileDevice, isTouchPrimary } from '../input/device';
-import { ExhibitRegistry } from '../exhibits/registry';
+import { createPlaceholderDefinitions } from '../exhibits/debug/PlaceholderExhibit';
+import { ExhibitRegistry, exhibitDefinitions } from '../exhibits/registry';
 import { HintController } from '../interaction/HintController';
 import { ProximityDetector } from '../interaction/ProximityDetector';
 import { Museum } from '../museum/Museum';
 import { createViewpointMark } from '../museum/ViewpointMark';
 import { PlayerController } from '../player/PlayerController';
+import { ExhibitList } from '../ui/ExhibitList';
 import { HelpOverlay } from '../ui/HelpOverlay';
 import { HintPanel } from '../ui/HintPanel';
 import { Hud } from '../ui/Hud';
@@ -41,6 +43,7 @@ export class App {
   hints!: HintController;
   hud!: Hud;
   hintPanel!: HintPanel;
+  list!: ExhibitList;
   private readonly modals = new Set<string>();
 
   constructor(private readonly container: HTMLElement) {
@@ -71,6 +74,7 @@ export class App {
     this.player = new PlayerController(this.camera, this.input);
 
     this.loop = new Loop(() => this.render());
+    this.loop.timeScale = readTimeScale();
 
     window.addEventListener('resize', () => this.resize());
     this.resize();
@@ -90,7 +94,10 @@ export class App {
     await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 2500))]);
 
     loading.setProgress(0.3, '展示を設営しています…');
-    this.registry = new ExhibitRegistry();
+    const demo = new URLSearchParams(window.location.search).get('demo') === '1';
+    this.registry = new ExhibitRegistry(
+      demo ? [...exhibitDefinitions, ...createPlaceholderDefinitions()] : exhibitDefinitions,
+    );
     await this.registry.loadAll(
       {
         quality: this.quality.settings,
@@ -115,8 +122,9 @@ export class App {
     this.setupInteraction();
 
     this.loop.add(this.quality);
-    this.loop.add(this.player);
+    // 演出(カメラの上書き)を先に更新し、同じフレームでカメラへ反映する
     this.loop.add(this.hints);
+    this.loop.add(this.player);
     this.loop.add({ update: (delta) => this.registry.update(delta, this.camera) });
     this.loop.add(this.touchControls);
     this.loop.start();
@@ -179,6 +187,13 @@ export class App {
       isDragFallback: () => this.keyboard.dragFallback,
     });
     this.hintPanel = new HintPanel();
+    this.list = new ExhibitList(this.registry.definitions.map((d) => ({ id: d.id, room: d.room })));
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Tab') {
+        e.preventDefault();
+        if (!this.help.open) this.list.toggle();
+      }
+    });
     this.help = new HelpOverlay({
       touch: isTouchPrimary(),
       onStart: () => {
@@ -187,6 +202,12 @@ export class App {
     });
 
     const topBar = h('div', { className: 'topbar' }, [
+      h('button', {
+        className: 'btn',
+        text: '展示一覧',
+        attrs: { type: 'button', 'data-testid': 'list-button' },
+        onClick: () => this.list.toggle(),
+      }),
       h('button', {
         className: 'btn btn--icon',
         text: '?',
@@ -232,6 +253,12 @@ function nextFrame(): Promise<void> {
     requestAnimationFrame(done);
     setTimeout(done, 80);
   });
+}
+
+/** `?timescale=3` で時間を早送りする(描画の遅いテスト環境用)。1〜8 に制限 */
+function readTimeScale(): number {
+  const v = Number(new URLSearchParams(window.location.search).get('timescale'));
+  return Number.isFinite(v) && v > 0 ? Math.min(8, v) : 1;
 }
 
 /** `?quality=low` のように URL でティアを固定できる(デバッグ用) */

@@ -1,7 +1,7 @@
 import type * as THREE from 'three';
 import type { ProximityTarget } from '../interaction/ProximityDetector';
 import type { Exhibit, ExhibitRoom, LoadContext } from './Exhibit';
-import { createPlaceholderDefinitions } from './debug/PlaceholderExhibit';
+import { classicDefinitions } from './classic';
 
 export interface ExhibitDefinition {
   id: string;
@@ -10,7 +10,7 @@ export interface ExhibitDefinition {
 }
 
 /** 館内に置く展示の一覧。順序が展示一覧の並び順になる */
-export const exhibitDefinitions: ExhibitDefinition[] = [...createPlaceholderDefinitions()];
+export const exhibitDefinitions: ExhibitDefinition[] = [...classicDefinitions];
 
 export const exhibitIds: string[] = exhibitDefinitions.map((d) => d.id);
 
@@ -48,12 +48,10 @@ export class ExhibitRegistry {
   }
 
   proximityTargets(): ProximityTarget[] {
-    return this.exhibits.map((e) => ({
-      id: e.meta.id,
-      x: e.meta.position.x,
-      z: e.meta.position.z,
-      radius: e.meta.triggerRadius,
-    }));
+    return this.exhibits.map((e) => {
+      const c = e.meta.triggerCenter ?? e.meta.position;
+      return { id: e.meta.id, x: c.x, z: c.z, radius: e.meta.triggerRadius };
+    });
   }
 
   dispose(): void {

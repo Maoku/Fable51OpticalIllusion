@@ -12,6 +12,8 @@ export class Loop {
   private elapsed = 0;
   /** 1 フレームの delta 上限(秒)。タブ復帰時の暴走を防ぐ */
   maxDelta = 0.1;
+  /** 時間の倍率(テスト・デバッグ用)。描画が遅い環境で演出を早送りする */
+  timeScale = 1;
 
   constructor(private readonly render: () => void) {}
 
@@ -30,7 +32,7 @@ export class Loop {
     this.last = performance.now();
     const tick = (now: number) => {
       if (!this.running) return;
-      const delta = Math.min((now - this.last) / 1000, this.maxDelta);
+      const delta = Math.min((now - this.last) / 1000, this.maxDelta) * this.timeScale;
       this.last = now;
       this.elapsed += delta;
       for (const u of this.updatables) u.update(delta, this.elapsed);

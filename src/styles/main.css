@@ -430,3 +430,72 @@ body.is-touch .hint-panel {
   max-height: 38vh;
   font-size: 1rem;
 }
+
+/* ---------- 展示一覧 ---------- */
+.list__panel {
+  width: min(32rem, 100%);
+}
+
+.list__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.list__room {
+  margin: 1rem 0 0.4rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.15em;
+  color: var(--accent);
+}
+
+.list__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.list__item {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: 2.6rem 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 0.6rem;
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgba(29, 27, 24, 0.12);
+  border-radius: 0.6rem;
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.list__item:hover {
+  background: #fff;
+}
+
+.list__num {
+  grid-row: 1 / span 2;
+  align-self: center;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.list__title {
+  font-weight: 600;
+}
+
+.list__sub {
+  font-size: 0.8rem;
+  color: rgba(29, 27, 24, 0.65);
+}
+
+body.is-touch .list__item {
+  padding: 0.85rem 1rem;
+}

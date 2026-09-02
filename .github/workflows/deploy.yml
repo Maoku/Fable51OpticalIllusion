@@ -26,10 +26,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # 出力は相対パスなので、公開先のサブパスに関係なくそのまま置ける
       - run: npm run build
-        env:
-          # リポジトリ名をパスの先頭に付ける(例: /Fable51OpticalIllusion/)
-          BASE_PATH: /${{ github.event.repository.name }}/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

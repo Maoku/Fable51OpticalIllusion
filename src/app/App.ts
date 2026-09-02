@@ -23,6 +23,7 @@ import { TouchControls } from '../ui/TouchControls';
 import { h, uiRoot } from '../ui/dom';
 import { Loop } from './Loop';
 import { PostProcess } from './PostProcess';
+import { BASE_FOV, fovForAspect } from './camera';
 import { QualityController, readGpuName } from './Quality';
 import { bus } from './events';
 
@@ -79,7 +80,7 @@ export class App {
       forceTier: readForcedTier(),
     });
 
-    this.camera = new THREE.PerspectiveCamera(70, 1, 0.05, 200);
+    this.camera = new THREE.PerspectiveCamera(BASE_FOV, 1, 0.05, 200);
     this.input = new CompositeInput([this.keyboard, this.touch]);
     this.player = new PlayerController(this.camera, this.input);
 
@@ -88,6 +89,10 @@ export class App {
     this.loop.timeScale = readTimeScale();
 
     window.addEventListener('resize', () => this.resize());
+    // iOS はツールバーの開閉や回転で resize が来ないことがあるので、実サイズも監視する
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(() => this.resize()).observe(container);
+    }
     this.resize();
   }
 
@@ -288,6 +293,9 @@ export class App {
       }),
     ]);
     uiRoot().appendChild(topBar);
+    // 縦持ちではヒントパネルが画面の上部を占めるので、開いている間は畳む
+    bus.on('hint:open', () => topBar.classList.add('is-hint-open'));
+    bus.on('hint:close', () => topBar.classList.remove('is-hint-open'));
 
     if (new URLSearchParams(window.location.search).get('stats') === '1') {
       this.loop.add(
@@ -314,10 +322,19 @@ export class App {
     bus.emit('input:touchmode', { touch });
   }
 
+  private lastWidth = 0;
+  private lastHeight = 0;
+
   resize(): void {
     const width = this.container.clientWidth || window.innerWidth;
     const height = this.container.clientHeight || window.innerHeight;
-    this.camera.aspect = width / height;
+    if (width === this.lastWidth && height === this.lastHeight) return;
+    this.lastWidth = width;
+    this.lastHeight = height;
+    const aspect = width / height;
+    this.camera.aspect = aspect;
+    // 縦持ちで左右が見切れないよう、アスペクト比に応じて垂直画角を広げる
+    this.camera.fov = fovForAspect(aspect);
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
     this.post?.setSize(width, height);

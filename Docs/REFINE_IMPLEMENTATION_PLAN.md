@@ -202,7 +202,9 @@ PC の既定を「ボタンを押しながらドラッグして見回す」に�
 #### テストと受け入れ基準
 
 - E2E(`?quality=high`): 部屋の中へワープすると `__museum.post.aoEnabled` が false、外へ出ると true
-- 目視(実 GPU、high): 壁・床・天井の入隅が識別できない。`SHOT_QUERY=&quality=high` で `ganzfeld-chamber.png` を撮り直す(SwiftShader でも GTAO は正しく描かれる。時間はかかる)
+- 目視(実 GPU、high): 壁・床・天井の入隅が識別できない
+
+実施結果: 実 GPU の high ティアで、部屋の中は完全に一様な色面になり稜線は 1 本も見えない。種明かしでは稜線が青い線で描かれ、奥行きと板の同色が戻ることも確認した。`Docs/screenshots/ganzfeld-chamber.png` は撮り直していない。撮影は SwiftShader(low ティア、GTAO なし)で走るため、修正前から同じ見え方になっており差が出ないため
 
 ### 5.3 F4 窓の外の庭: 水庭が見えない、フォグと被写界深度
 
@@ -366,7 +368,7 @@ B・D では登るほど天井が下がり、頂部で 1.31 m まで狭まる。
 | R1 操作方法 ✔ | §3。`MouseLookCore`、右/左ドラッグ、`L` キー、HUD・ヘルプ・README | なし | M | 完了。単体 10 件、E2E `controls.spec.ts` 6 件が緑。ドラッグ直後にヒントボタンを押せることを E2E で確認した |
 | R1' 小修正 ✔ | F6(§5.4)、C7(§4.2)。別 PR に分けた | R0 | S+S | 完了。F6 は単体 6 件と E2E が緑、全フライトで頭上 2.413 m。C7 は陰影が読めるようになり、スクリーンショットを撮り直した |
 | R2 傾きの部屋 | §5.1。視界フレームの機構と `TiltedRoom` の変更、文言 | なし | M | E2E で傾き/復帰を確認。目視で球が登る |
-| R3 ポストプロセスと回廊 | `LoadContext.post`、`PostProcess` API、F3(§5.2)、F4(§5.3 A・B・C)。F3 を先に小さな PR、F4 を続ける | R0 | S + L | F3: 実 GPU で稜線が消える。F4: 水面が見え、霞が掛かる。被写界深度の A/B 判断 |
+| R3 ポストプロセスと回廊 | `LoadContext.post`、`PostProcess` API、F3(§5.2)✔、F4(§5.3 A・B・C)。F3 を先に小さな PR、F4 を続ける | R0 | S + L | F3 完了(実 GPU の high で稜線が消えることを確認、E2E も緑)。F4: 水面が見え、霞が掛かる。被写界深度の A/B 判断 |
 | R4 水面 | §5.5。`WaterSurface`、`InvertedPond` の再構成、low の代替、文言 | なし | L | E2E と実機 mid の fps。目視 |
 | R5 エイムズの部屋 | §4.1。等距離視点と `CameraPath` | なし | M | E2E で見かけの身長比 1 ± 0.05 |
 | R6 仕上げ | 全展示のスクリーンショット撮り直し、`Docs/exhibits/` と README の最終確認、任意で F4 に `WaterSurface` を流用 | R1〜R5 | S | §1 の完成の定義 |

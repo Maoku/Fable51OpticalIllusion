@@ -15,6 +15,8 @@ export class PostProcess {
   private bloom: UnrealBloomPass | null = null;
   private ao: GTAOPass | null = null;
   private settings: QualitySettings | null = null;
+  /** AO を止めたい展示のキー。1 つでも入っていれば AO を切る */
+  private readonly aoSuppressors = new Set<string>();
   private width = 1;
   private height = 1;
 
@@ -26,6 +28,28 @@ export class PostProcess {
 
   get enabled(): boolean {
     return this.composer !== null;
+  }
+
+  /** AO(GTAO)が実際に効いているか。テストと展示側の判定に使う */
+  get aoEnabled(): boolean {
+    return this.ao !== null && this.ao.enabled;
+  }
+
+  /**
+   * AO を一時的に止める / 戻す。
+   * スクリーンスペースの遮蔽は無灯のマテリアルでも入隅を暗くするので、
+   * 陰影を消したい展示(F3 色の部屋)の中では切る必要がある。
+   * 複数の展示が同時に要求しても取り違えないよう、キーの集合で管理する。
+   */
+  suppressAO(key: string, on: boolean): void {
+    const had = this.aoSuppressors.size > 0;
+    if (on) this.aoSuppressors.add(key);
+    else this.aoSuppressors.delete(key);
+    if (had !== this.aoSuppressors.size > 0) this.applyAo();
+  }
+
+  private applyAo(): void {
+    if (this.ao) this.ao.enabled = this.aoSuppressors.size === 0;
   }
 
   configure(settings: QualitySettings): void {
@@ -53,6 +77,8 @@ export class PostProcess {
       ao.updateGtaoMaterial({ radius: 0.3, distanceExponent: 1.5, scale: 1.0, samples: 12 });
       composer.addPass(ao);
       this.ao = ao;
+      // ティアが変わって作り直したときも、止めている展示の中なら止めたままにする
+      this.applyAo();
     }
     if (settings.bloom) {
       // しきい値はトーンマッピング前の線形値。白い壁(≈1.0)が滲まないよう、天窓の空(≈2.2)だけが超える値にする

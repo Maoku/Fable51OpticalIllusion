@@ -16,12 +16,16 @@ export const GANZFELD = { width: 5, depth: 4.2, height: 3.2, doorWidth: 1.6, doo
  */
 export class GanzfeldChamber extends BaseExhibit {
   private surfaces: THREE.MeshBasicMaterial | null = null;
+  private post: LoadContext['post'] | null = null;
+  private inside = false;
   private elapsed = 0;
   /** 種明かしの進行度。1 で白色光になる */
   private hintT = 0;
   private readonly tmpColor = new THREE.Color();
+  private readonly tmpPos = new THREE.Vector3();
 
-  protected build(_ctx: LoadContext): void {
+  protected build(ctx: LoadContext): void {
+    this.post = ctx.post;
     const G = GANZFELD;
     const mats = getMaterials();
     const hw = G.width / 2;
@@ -162,7 +166,31 @@ export class GanzfeldChamber extends BaseExhibit {
     );
   }
 
-  override update(delta: number): void {
+  override dispose(): void {
+    if (this.inside) this.post?.suppressAO('ganzfeld-chamber', false);
+    this.inside = false;
+    super.dispose();
+  }
+
+  /** カメラが内装の箱の中にいるか(ローカル座標で判定) */
+  private isInside(camera: THREE.Camera): boolean {
+    const G = GANZFELD;
+    const p = camera.getWorldPosition(this.tmpPos);
+    const l = this.toLocal(p.x, p.y, p.z);
+    // 入口の面から少し中へ入ったところで切り替える
+    return (
+      Math.abs(l.x) <= G.width / 2 && l.z <= -0.15 && l.z >= -G.depth && l.y >= 0 && l.y <= G.height
+    );
+  }
+
+  override update(delta: number, camera: THREE.Camera): void {
+    // スクリーンスペースの遮蔽(GTAO)は無灯のマテリアルでも入隅を暗くするので、
+    // 部屋の中にいる間は切る。一様な色面の中では切り替わりは見えない
+    const inside = this.isInside(camera);
+    if (inside !== this.inside) {
+      this.inside = inside;
+      this.post?.suppressAO('ganzfeld-chamber', inside);
+    }
     if (!this.surfaces) return;
     this.elapsed += delta;
     // 60 秒で暖色 → 寒色 → 暖色とゆっくり巡る淡い色

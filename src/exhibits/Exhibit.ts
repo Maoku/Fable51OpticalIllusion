@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { PostProcess } from '../app/PostProcess';
 import type { QualitySettings } from '../app/Quality';
 import type { Museum } from '../museum/Museum';
 import type { AABB } from '../player/Collision';
@@ -30,6 +31,8 @@ export interface ExhibitMeta {
 
 export interface LoadContext {
   quality: QualitySettings;
+  /** ポストプロセス。展示から AO や被写界深度を一時的に変える */
+  post: PostProcess;
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;

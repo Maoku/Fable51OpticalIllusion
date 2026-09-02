@@ -132,6 +132,7 @@ export class App {
     await this.registry.loadAll(
       {
         quality: this.quality.settings,
+        post: this.post,
         renderer: this.renderer,
         scene: this.scene,
         camera: this.camera,

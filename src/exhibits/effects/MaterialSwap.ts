@@ -24,6 +24,17 @@ interface Snapshot {
 }
 
 /**
+ * transparent はシェーダのキャッシュキーに入るので、切り替わったときだけ needsUpdate を立てる。
+ * 毎フレーム needsUpdate = true にすると material.version が上がり続け、
+ * 描画のたびに全マテリアルのプログラム再検索(キャッシュキーの再生成)が走ってしまう。
+ */
+function setTransparent(m: THREE.Material, value: boolean): void {
+  if (m.transparent === value) return;
+  m.transparent = value;
+  m.needsUpdate = true;
+}
+
+/**
  * 半透明化・単色化などで内部構造を見せる。
  * 元のマテリアル値を保持し、t で線形補間する。
  */
@@ -75,7 +86,7 @@ export class MaterialSwap implements HintEffect {
       if (this.target.opacity !== undefined) {
         const op = THREE.MathUtils.lerp(s.opacity, this.target.opacity, t);
         m.opacity = op;
-        m.transparent = t > 0 ? true : s.transparent;
+        setTransparent(m, t > 0 ? true : s.transparent);
         m.depthWrite = t > 0 ? op > 0.95 : s.depthWrite;
       }
       if (this.targetColor) {
@@ -94,7 +105,6 @@ export class MaterialSwap implements HintEffect {
       if (this.target.wireframe !== undefined && 'wireframe' in m) {
         (m as THREE.MeshStandardMaterial).wireframe = t >= 0.5 ? this.target.wireframe : false;
       }
-      m.needsUpdate = true;
     }
     for (const o of this.target.revealObjects ?? []) o.visible = t > 0;
     for (const o of this.target.hideObjects ?? []) o.visible = t < 1;

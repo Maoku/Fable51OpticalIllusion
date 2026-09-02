@@ -45,6 +45,14 @@ export const TIER_SETTINGS: Record<QualityTier, QualitySettings> = {
 
 const TIER_ORDER: QualityTier[] = ['high', 'mid', 'low'];
 
+/**
+ * pixelRatio を上げるのに必要な「余裕のある判定窓」の連続回数。
+ * 上げるとポストプロセスのレンダーターゲットを作り直すことになり、その 1 フレームが
+ * はっきり引っかかる。目標 fps 付近をうろつくと上げ下げを往復して延々と引っかかるので、
+ * 上げる側にだけヒステリシスを入れる。
+ */
+const RAISE_STREAK = 3;
+
 /** GPU のレンダラ文字列とモバイル判定から初期ティアを決める */
 export function detectTier(gpu: string | null | undefined, isMobile: boolean): QualityTier {
   const s = (gpu ?? '').toLowerCase();
@@ -112,6 +120,8 @@ export class QualityController implements Updatable {
   private frames = 0;
   private time = 0;
   private lowStreak = 0;
+  private goodStreak = 0;
+  private skipWindow = false;
   private readonly devicePixelRatio: number;
 
   constructor(
@@ -147,6 +157,10 @@ export class QualityController implements Updatable {
     const avgFps = this.frames / this.time;
     this.frames = 0;
     this.time = 0;
+    if (this.skipWindow) {
+      this.skipWindow = false;
+      return;
+    }
 
     const next = adjustPixelRatio({
       current: this.pixelRatio,
@@ -160,6 +174,7 @@ export class QualityController implements Updatable {
       this.lowStreak++;
       if (this.lowStreak >= 3 && this.settings.tier !== 'low') {
         this.lowStreak = 0;
+        this.goodStreak = 0;
         this.setTier(lowerTier(this.settings.tier));
         return;
       }
@@ -167,13 +182,27 @@ export class QualityController implements Updatable {
       this.lowStreak = 0;
     }
 
-    if (Math.abs(next - this.pixelRatio) > 1e-6) {
+    if (next > this.pixelRatio + 1e-6) {
+      // 上げるのは余裕が続いたときだけ(RAISE_STREAK 窓ぶん)
+      this.goodStreak++;
+      if (this.goodStreak < RAISE_STREAK) return;
+      this.goodStreak = 0;
+      this.pixelRatio = next;
+      this.apply();
+      return;
+    }
+
+    this.goodStreak = 0;
+    if (next < this.pixelRatio - 1e-6) {
       this.pixelRatio = next;
       this.apply();
     }
   }
 
   private apply(): void {
+    // 設定を変えたフレームは重い(レンダーターゲットの作り直し)。その 1 フレームを含む
+    // 判定窓をそのまま使うと fps が低く出て、下げ→上げの往復を誘発するので捨てる
+    this.skipWindow = true;
     this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.shadowMap.enabled = this.settings.dynamicShadows;
     bus.emit('quality:change', { tier: this.settings.tier, pixelRatio: this.pixelRatio });

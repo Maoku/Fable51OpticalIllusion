@@ -24,6 +24,8 @@ export class SkyLight implements Updatable {
   private readonly shadowCenter: THREE.Vector3;
   private readonly period: number;
   private elapsed = 0;
+  /** 現在の影マップ解像度。影を落とさないときは 0 */
+  private shadowSize = -1;
 
   constructor(opts: SkyLightOptions) {
     this.center = opts.center.clone();
@@ -46,15 +48,20 @@ export class SkyLight implements Updatable {
   }
 
   applyQuality(q: QualitySettings): void {
-    this.light.castShadow = q.dynamicShadows && q.shadowMapSize > 0;
-    if (this.light.castShadow) {
-      const size = q.shadowMapSize;
+    const castShadow = q.dynamicShadows && q.shadowMapSize > 0;
+    const size = castShadow ? q.shadowMapSize : 0;
+    // quality:change は pixelRatio が動くたびに飛んでくる。影の設定が変わっていなければ
+    // 何もしない(影マップを捨てると次のフレームで作り直しになり、目に見えて引っかかる)
+    if (size === this.shadowSize) return;
+    this.shadowSize = size;
+    this.light.castShadow = castShadow;
+    if (castShadow) {
       this.light.shadow.mapSize.set(size, size);
       this.light.shadow.map?.dispose();
       this.light.shadow.map = null;
     }
     // 影がないと部屋全体が均一に明るくなるので、low では控えめにする
-    this.light.intensity = this.light.castShadow ? 2.4 : 0.9;
+    this.light.intensity = castShadow ? 2.4 : 0.9;
   }
 
   update(delta: number): void {

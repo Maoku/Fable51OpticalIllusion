@@ -140,16 +140,21 @@ export class App {
         this.scene.add(createViewpointMark(e.meta.viewpoint.position, e.meta.viewpoint.yaw));
       }
     }
-    loading.setProgress(0.9, '入力を準備しています…');
+    loading.setProgress(0.88, '入力を準備しています…');
     await nextFrame();
 
     this.setupUi();
     this.setupInput();
     this.setupInteraction();
 
-    this.lightCuller = new LightCuller(() => this.camera.position);
+    this.lightCuller = new LightCuller(() => this.camera);
     this.lightCuller.collect(this.scene);
     this.loop.add(this.lightCuller);
+
+    // 光源の点灯数が決まったこの時点でシェーダをまとめて用意する。
+    // 初めて見る展示のマテリアルをフレーム内でコンパイルすると数百 ms 固まるため
+    loading.setProgress(0.94, 'シェーダを準備しています…');
+    await this.warmUpShaders();
 
     this.loop.add(this.quality);
     // 演出(カメラの上書き)を先に更新し、同じフレームでカメラへ反映する
@@ -166,6 +171,40 @@ export class App {
 
     document.body.dataset.ready = '1';
     bus.emit('app:ready', undefined);
+  }
+
+  /**
+   * シーン内の全マテリアルを先にコンパイルしておく。
+   * three.js はマテリアルを最初に描くフレームでシェーダをコンパイルするので、
+   * 何もしないと新しい部屋へ入るたびにそのフレームが固まる。
+   *
+   * ポストプロセスがあるときは本番の描画先がレンダーターゲットになり、色空間と
+   * トーンマッピングの扱いが変わる(= 別のプログラム)。同じ条件でコンパイルしないと
+   * 最初のフレームで全マテリアルを作り直すことになるので、ダミーの
+   * レンダーターゲットを挿してから走らせる。
+   */
+  private async warmUpShaders(): Promise<void> {
+    const warm = this.post.enabled ? new THREE.WebGLRenderTarget(1, 1) : null;
+    const prev = this.renderer.getRenderTarget();
+    this.renderer.setRenderTarget(warm);
+    try {
+      await this.renderer.compileAsync(this.scene, this.camera);
+    } catch {
+      // compileAsync が使えない環境では同期版で(それも失敗するなら通常描画に任せる)
+      try {
+        this.renderer.compile(this.scene, this.camera);
+      } catch {
+        /* noop */
+      }
+    } finally {
+      this.renderer.setRenderTarget(prev);
+      warm?.dispose();
+    }
+    // 影の深度マテリアルとポストプロセス各パスは compile の対象外なので、
+    // ローディング表示のうちに 1 フレーム通しで描いて用意する
+    // (影カメラは館内全体を覆うので、この 1 回で全体ぶんが揃う)
+    this.render();
+    await nextFrame();
   }
 
   private setupInput(): void {

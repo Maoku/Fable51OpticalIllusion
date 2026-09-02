@@ -50,6 +50,11 @@ export class InfinityWell extends BaseExhibit {
   private portalMat: THREE.ShaderMaterial | null = null;
   private renderer: THREE.WebGLRenderer | null = null;
   private readonly bufferSize = new THREE.Vector2();
+  /** 画面に映っているかの判定用(井戸を包む球と視錐台) */
+  private readonly bounds = new THREE.Sphere();
+  private readonly frustum = new THREE.Frustum();
+  private readonly viewProjection = new THREE.Matrix4();
+  private readonly viewInverse = new THREE.Matrix4();
 
   protected build(ctx: LoadContext): void {
     const mats = getMaterials();
@@ -119,6 +124,7 @@ export class InfinityWell extends BaseExhibit {
     bottom.rotation.x = -Math.PI / 2;
     bottom.position.y = W.rimHeight - W.depth + 0.002;
     this.object.add(bottom);
+    this.bounds.set(this.toWorld(0, W.rimHeight / 2, 0), W.rimOuter * 1.5);
 
     const caption = createCaptionFor(this.meta.id);
     caption.position.set(1.2, 0, 0.8);
@@ -217,6 +223,15 @@ export class InfinityWell extends BaseExhibit {
     // 井戸の近くにいるときだけ描く
     const d = camera.position.distanceTo(this.meta.position);
     if (d > 12) return;
+    // 画面に映っていなければ描かない(隠しシーンの描画は画面の 1/4 を塗るぶんの負荷がある)
+    camera.updateMatrixWorld();
+    this.viewInverse.copy(camera.matrixWorld).invert();
+    this.viewProjection.multiplyMatrices(
+      (camera as THREE.PerspectiveCamera).projectionMatrix,
+      this.viewInverse,
+    );
+    this.frustum.setFromProjectionMatrix(this.viewProjection);
+    if (!this.frustum.intersectsSphere(this.bounds)) return;
     renderer.getDrawingBufferSize(this.bufferSize);
     const w = Math.max(1, Math.floor(this.bufferSize.x / 2));
     const h = Math.max(1, Math.floor(this.bufferSize.y / 2));

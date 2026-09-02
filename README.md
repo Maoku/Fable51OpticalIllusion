@@ -31,7 +31,7 @@ https://maoku.github.io/Fable51OpticalIllusion/
 
 - 公開版: <https://maoku.github.io/Fable51OpticalIllusion/>(ブラウザだけで遊べます)
 - 計画: [Docs/IMPLEMENTATION_PLAN.md](Docs/IMPLEMENTATION_PLAN.md)
-- 推奨視点のスクリーンショット: [Docs/screenshots/](Docs/screenshots/)
+- 推奨視点のスクリーンショット: リポジトリには含めていません。[「テスト」の手順](#テスト)で `Docs/screenshots/` に生成できます
 - クレジット: [CREDITS.md](CREDITS.md)
 
 ## 操作方法
@@ -106,7 +106,7 @@ npm run credits     # credits.ts から CREDITS.md を再生成
 
 E2E は CI では実行しません。GitHub Actions には GPU がなく WebGL の描画を SwiftShader(CPU)で行うため、実行時間が読めずジョブのタイムアウトに掛かるためです。UI や描画に関わる変更をしたときは、手元で `npm run test:e2e` を通してから push してください。
 
-推奨視点のスクリーンショットを撮り直すには:
+推奨視点のスクリーンショットは容量が大きいのでリポジトリに含めていません(`.gitignore` で `Docs/screenshots/` を除外しています)。`Docs/screenshots/` に生成するには:
 
 ```bash
 SHOTS=1 npx playwright test screenshots --project=desktop-chromium

@@ -10,7 +10,9 @@ import {
 import { viewpointInFront, type ExhibitMeta } from '../Exhibit';
 import type { ExhibitDefinition } from '../registry';
 import { AmesRoom } from './AmesRoom';
+import { ANAMORPH, Anamorphosis } from './Anamorphosis';
 import { CheckerShadow } from './CheckerShadow';
+import { HollowFace } from './HollowFace';
 import { PenroseTriangle } from './PenroseTriangle';
 import { PosterExhibit } from './PosterExhibit';
 
@@ -103,5 +105,29 @@ export const classicDefinitions: ExhibitDefinition[] = [
         base: drawEbbinghaus,
         guide: drawEbbinghausGuide,
       }),
+  },
+  {
+    id: 'hollow-face',
+    room: 'classic',
+    create: () => new HollowFace(meta('hollow-face', 2.5, 6.85, 0, 2.3, 2.0)),
+  },
+  {
+    id: 'anamorphosis',
+    room: 'classic',
+    create: () => {
+      // 南の壁の内面。絵は壁から部屋側(-z)へ床に広がり、視点は壁から 4.6 m の位置
+      const position = new THREE.Vector3(-4.2, 0, 6.85);
+      const facing = 0;
+      const viewpoint = viewpointInFront(position, facing, ANAMORPH.eye.z, -0.08);
+      return new Anamorphosis({
+        id: 'anamorphosis',
+        room: 'classic',
+        position,
+        facing,
+        triggerRadius: 1.6,
+        triggerCenter: viewpoint.position.clone(),
+        viewpoint,
+      });
+    },
   },
 ];

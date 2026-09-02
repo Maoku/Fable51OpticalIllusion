@@ -14,9 +14,8 @@ export const corridorSpec: RoomSpec = {
   openings: [
     // F4「窓の外の庭」を見る大窓(ガラス入り、通り抜け不可)
     { side: 'east', center: -13, width: 6.4, height: 1.9, bottom: 0.85, glazed: true },
+    // F6「終わらない階段」の塔への戸口
+    { side: 'west', center: -10.725, width: 1.45, height: 2.3 },
   ],
-  lights: [
-    { x: 0, z: -9.5, intensity: 12 },
-    { x: 0, z: -16.5, intensity: 12 },
-  ],
+  lights: [{ x: 0, z: -13, intensity: 16 }],
 };

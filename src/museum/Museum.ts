@@ -8,8 +8,8 @@ import { getMaterials } from './materials';
 import { Room } from './Room';
 import { SkyLight } from './SkyLight';
 
-/** 足元の高さを返す。範囲外なら null */
-export type GroundPatch = (x: number, z: number) => number | null;
+/** 足元の高さを返す。範囲外なら null。y は現在の高さ(段が重なる構造で近い方を選ぶため) */
+export type GroundPatch = (x: number, z: number, y: number) => number | null;
 
 /** 部屋群と回廊を組み立てる。 */
 export class Museum {
@@ -62,9 +62,9 @@ export class Museum {
   }
 
   /** 足元の高さ(段差や傾いた床)。どのパッチにも入っていなければ 0 */
-  groundAt(x: number, z: number): number {
+  groundAt(x: number, z: number, currentY = 0): number {
     for (const patch of this.groundPatches) {
-      const y = patch(x, z);
+      const y = patch(x, z, currentY);
       if (y !== null) return y;
     }
     return 0;

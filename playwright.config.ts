@@ -7,6 +7,8 @@ export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 60_000,
   fullyParallel: true,
+  // SwiftShader は CPU 描画なので、並列数を絞って 1 テストあたりの fps を確保する
+  workers: 2,
   retries: isCI ? 1 : 0,
   reporter: isCI ? 'github' : 'list',
   use: {

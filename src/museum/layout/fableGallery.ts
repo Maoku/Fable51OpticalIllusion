@@ -11,9 +11,7 @@ export const fableGallerySpec: RoomSpec = {
   openings: [{ side: 'south', center: 0, width: 3, height: 3.5 }],
   floor: { maxZ: -19.15 },
   lights: [
-    { x: -6, z: -23.5, drop: 1.8, intensity: 10 },
-    { x: 6, z: -23.5, drop: 1.8, intensity: 10 },
-    { x: -6, z: -34.5, drop: 1.8, intensity: 10 },
-    { x: 6, z: -34.5, drop: 1.8, intensity: 10 },
+    { x: 0, z: -24, drop: 1.8, intensity: 16 },
+    { x: 0, z: -34, drop: 1.8, intensity: 16 },
   ],
 };

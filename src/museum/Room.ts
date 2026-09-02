@@ -202,7 +202,8 @@ export class Room {
 
   private buildLights(): void {
     for (const l of this.spec.lights) {
-      const light = new THREE.PointLight(l.color ?? 0xfff4e6, l.intensity ?? 18, 14, 2);
+      const light = new THREE.PointLight(l.color ?? 0xfff4e6, l.intensity ?? 18, 18, 2);
+      light.userData.cullRange = 26;
       light.position.set(l.x, this.spec.height - (l.drop ?? 0.3), l.z);
       light.name = 'roomLight';
       this.group.add(light);

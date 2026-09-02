@@ -1,10 +1,14 @@
 import * as THREE from 'three';
 import { viewpointInFront, type ExhibitMeta } from '../Exhibit';
 import type { ExhibitDefinition } from '../registry';
+import { EndlessStair } from './EndlessStair';
 import { ForcedPerspectiveGarden } from './ForcedPerspectiveGarden';
 import { GANZFELD, GanzfeldChamber } from './GanzfeldChamber';
+import { InfinityWell } from './InfinityWell';
+import { InvertedPond } from './InvertedPond';
 import { TILT, TiltedRoom } from './TiltedRoom';
 import { TrilemmaSculpture } from './TrilemmaSculpture';
+import { STAIR } from './stairGeometry';
 
 function meta(
   id: string,
@@ -95,5 +99,37 @@ export const fableDefinitions: ExhibitDefinition[] = [
           new THREE.Vector3(0.7, 0, WINDOW.z),
         ),
       ),
+  },
+  {
+    id: 'infinity-well',
+    room: 'fable',
+    create: () => new InfinityWell(meta('infinity-well', -6, -22, -Math.PI / 2, 3.0, 1.5, -0.55)),
+  },
+  {
+    id: 'endless-stair',
+    room: 'fable',
+    create: () => {
+      // 塔の中心。推奨視点は入口の踊り場 L0 で、東側の階段を見上げる
+      const position = new THREE.Vector3(-5.3, 0, -13);
+      const l0 = new THREE.Vector3(
+        position.x + STAIR.ax - STAIR.w / 2,
+        0,
+        position.z + STAIR.az - STAIR.w / 2,
+      );
+      return new EndlessStair({
+        id: 'endless-stair',
+        room: 'fable',
+        position,
+        facing: Math.PI,
+        triggerRadius: 4.6,
+        triggerCenter: position.clone(),
+        viewpoint: { position: l0, yaw: 0, pitch: 0.12 },
+      });
+    },
+  },
+  {
+    id: 'inverted-pond',
+    room: 'fable',
+    create: () => new InvertedPond(meta('inverted-pond', -6, -27.5, -Math.PI / 2, 3.2, 2.4, -0.34)),
   },
 ];

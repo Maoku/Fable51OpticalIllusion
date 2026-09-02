@@ -47,7 +47,8 @@ test.describe('screenshots', () => {
     test.skip(!SHOTS, 'SHOTS が未設定');
     test.setTimeout(600_000);
     mkdirSync(OUT, { recursive: true });
-    await page.goto('/');
+    // 描画の遅い環境でも演出が終わるよう早送りする(撮るのは静止した状態)
+    await page.goto('/?timescale=3' + (process.env.SHOT_QUERY ?? ''));
     await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 30_000 });
     await page.getByTestId('help-start').click();
 

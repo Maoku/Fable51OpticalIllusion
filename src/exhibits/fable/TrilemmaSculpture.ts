@@ -129,8 +129,7 @@ export class TrilemmaSculpture extends BaseExhibit {
       this.object.add(l);
     };
     spot(0.4, 2.2, 3.2, 40);
-    spot(3.0, 2.0, 0.6, 30);
-    spot(0.3, 5.5, 0.3, 30);
+    spot(2.2, 4.6, 0.6, 34);
 
     const caption = createCaptionFor(this.meta.id);
     caption.position.set(1.7, 0, 0.9);

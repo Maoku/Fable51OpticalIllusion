@@ -8,10 +8,8 @@ export const classicHallSpec: RoomSpec = {
   height: 4,
   openings: [{ side: 'north', center: 0, width: 3, height: 3 }],
   lights: [
-    { x: -4.5, z: -3 },
-    { x: 4.5, z: -3 },
-    { x: -4.5, z: 3 },
-    { x: 4.5, z: 3 },
+    { x: -4.5, z: 0, intensity: 26 },
+    { x: 4.5, z: 0, intensity: 26 },
   ],
 };
 

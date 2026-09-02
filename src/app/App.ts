@@ -8,6 +8,7 @@ import { createPlaceholderDefinitions } from '../exhibits/debug/PlaceholderExhib
 import { ExhibitRegistry, exhibitDefinitions } from '../exhibits/registry';
 import { HintController } from '../interaction/HintController';
 import { ProximityDetector } from '../interaction/ProximityDetector';
+import { LightCuller } from '../museum/LightCuller';
 import { Museum } from '../museum/Museum';
 import { createViewpointMark } from '../museum/ViewpointMark';
 import { PlayerController } from '../player/PlayerController';
@@ -42,6 +43,7 @@ export class App {
   help!: HelpOverlay;
   touchControls!: TouchControls;
   registry!: ExhibitRegistry;
+  lightCuller!: LightCuller;
   proximity!: ProximityDetector;
   hints!: HintController;
   hud!: Hud;
@@ -99,7 +101,7 @@ export class App {
     this.museum = new Museum();
     this.scene.add(this.museum.group);
     this.player.colliders = this.museum.colliders;
-    this.player.groundAt = (x, z) => this.museum.groundAt(x, z);
+    this.player.groundAt = (x, z, y) => this.museum.groundAt(x, z, y);
     for (const sky of this.museum.skyLights) sky.applyQuality(this.quality.settings);
     this.post.configure(this.quality.settings);
     bus.on('quality:change', ({ tier }) => {
@@ -139,6 +141,10 @@ export class App {
     this.setupUi();
     this.setupInput();
     this.setupInteraction();
+
+    this.lightCuller = new LightCuller(() => this.camera.position);
+    this.lightCuller.collect(this.scene);
+    this.loop.add(this.lightCuller);
 
     this.loop.add(this.quality);
     // 演出(カメラの上書き)を先に更新し、同じフレームでカメラへ反映する

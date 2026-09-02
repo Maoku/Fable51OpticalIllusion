@@ -45,7 +45,7 @@ export interface Exhibit {
   /** 展示が占有するワールド座標の AABB(プレイヤーの通行不可) */
   readonly colliders: readonly AABB[];
   /** 足元の高さを変える展示(傾いた床など)。範囲外なら null を返す */
-  groundPatch?: (x: number, z: number) => number | null;
+  groundPatch?: (x: number, z: number, currentY: number) => number | null;
   load(ctx: LoadContext): Promise<void>;
   update(delta: number, camera: THREE.Camera): void;
   dispose(): void;
@@ -75,8 +75,26 @@ export function viewpointInFront(
 export abstract class BaseExhibit implements Exhibit {
   readonly object = new THREE.Group();
   readonly colliders: AABB[] = [];
-  groundPatch?: (x: number, z: number) => number | null;
+  groundPatch?: (x: number, z: number, currentY: number) => number | null;
   protected loaded = false;
+
+  /** ワールド座標をローカル座標へ(toWorld の逆) */
+  protected toLocal(wx: number, wy: number, wz: number): THREE.Vector3 {
+    const th = this.meta.facing + Math.PI;
+    const dx = wx - this.meta.position.x;
+    const dz = wz - this.meta.position.z;
+    return new THREE.Vector3(
+      dx * Math.cos(th) - dz * Math.sin(th),
+      wy - this.meta.position.y,
+      dx * Math.sin(th) + dz * Math.cos(th),
+    );
+  }
+
+  /** ローカル +x のワールド単位ベクトル */
+  protected get rightDir(): THREE.Vector3 {
+    const th = this.meta.facing + Math.PI;
+    return new THREE.Vector3(Math.cos(th), 0, -Math.sin(th));
+  }
   private _hint: HintEffect = NOOP_EFFECT;
 
   constructor(readonly meta: ExhibitMeta) {

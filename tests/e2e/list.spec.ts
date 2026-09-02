@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('展示一覧から任意の展示の推奨視点へワープできる', async ({ page, isMobile }) => {
-  await page.goto('/');
+  await page.goto('/?timescale=3');
   await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 30_000 });
   const start = page.getByTestId('help-start');
   if (isMobile) await start.tap();
@@ -16,7 +16,7 @@ test('展示一覧から任意の展示の推奨視点へワープできる', as
   if (isMobile) await item.tap();
   else await item.click();
   await expect(page.getByTestId('exhibit-list')).toBeHidden();
-  await expect(page.getByTestId('hint-button')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('hint-button')).toBeVisible({ timeout: 40_000 });
   await expect(page.getByTestId('hud-label')).toContainText('エビングハウス');
 
   const pos = await page.evaluate(() => window.__museum!.player.position.toArray());

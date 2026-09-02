@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { CameraFrame } from '../exhibits/Exhibit';
 import type { AABB } from '../player/Collision';
 import { classicHallSpec, classicSpawn } from './layout/classicHall';
 import { corridorSpec } from './layout/corridor';
@@ -11,12 +12,16 @@ import { SkyLight } from './SkyLight';
 /** 足元の高さを返す。範囲外なら null。y は現在の高さ(段が重なる構造で近い方を選ぶため) */
 export type GroundPatch = (x: number, z: number, y: number) => number | null;
 
+/** 視界の傾きを返す。範囲外なら null */
+export type FramePatch = (x: number, z: number) => CameraFrame | null;
+
 /** 部屋群と回廊を組み立てる。 */
 export class Museum {
   readonly group = new THREE.Group();
   readonly rooms = new Map<RoomId, Room>();
   readonly colliders: AABB[] = [];
   readonly groundPatches: GroundPatch[] = [];
+  readonly framePatches: FramePatch[] = [];
   readonly skyLights: SkyLight[] = [];
   readonly spawn = {
     position: new THREE.Vector3(classicSpawn.x, 0, classicSpawn.z),
@@ -68,6 +73,15 @@ export class Museum {
       if (y !== null) return y;
     }
     return 0;
+  }
+
+  /** 視界の傾き(傾いた部屋の中など)。どのパッチにも入っていなければ null */
+  frameAt(x: number, z: number): CameraFrame | null {
+    for (const patch of this.framePatches) {
+      const frame = patch(x, z);
+      if (frame) return frame;
+    }
+    return null;
   }
 
   /** 座標がどの部屋にあるか */

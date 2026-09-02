@@ -2,8 +2,8 @@ import * as THREE from 'three';
 import { createCaptionFor } from '../../museum/Caption';
 import { getMaterials } from '../../museum/materials';
 import { createFigure } from '../../procedural/figure';
-import { BaseExhibit, type LoadContext } from '../Exhibit';
-import { CompositeHintEffect } from '../HintEffect';
+import { BaseExhibit, type CameraFrame, type LoadContext } from '../Exhibit';
+import { CompositeHintEffect, type HintEffect } from '../HintEffect';
 import { MaterialSwap } from '../effects/MaterialSwap';
 import { WireframeReveal } from '../effects/WireframeReveal';
 
@@ -18,8 +18,24 @@ export const TILT = {
   /** 入口前の傾斜をならす帯の長さ */
   ramp: 0.9,
   /** 球の軌道が部屋の床に対して持つ傾き(部屋の中では登り坂に見える) */
-  trackAngle: THREE.MathUtils.degToRad(6),
+  trackAngle: THREE.MathUtils.degToRad(9),
 };
+
+/**
+ * 視界を部屋に合わせて傾ける度合い(0..1)。
+ * 部屋の中では 1、入口前の帯でなめらかに 0 へ戻し、外では 0。
+ * 位置だけで決まるので状態を持たず、ワープや後退でも破綻しない。
+ */
+export function tiltFrameBlend(x: number, z: number, t = TILT): number {
+  const hw = t.width / 2;
+  if (x < -hw || x > hw) return 0;
+  if (z <= 0 && z >= -t.depth) return 1;
+  if (z > 0 && z <= t.ramp) {
+    const u = 1 - z / t.ramp;
+    return u * u * (3 - 2 * u);
+  }
+  return 0;
+}
 
 /**
  * 傾いた床の高さ(部屋のローカル座標、+z が入口側)。
@@ -36,14 +52,22 @@ export function tiltedFloorHeight(x: number, z: number, t = TILT): number | null
 
 /**
  * F2 傾きの間。
- * 床も壁も 12° 傾いた小部屋。カメラは常に水平を保つので、中に入ると
- * 球が坂を「登り」、鉛直に立つ人形や下げ振りが傾いて見える。
+ * 床も壁も 12° 傾いた小部屋。中に入ると視界も部屋に合わせて傾くので、
+ * 床と壁は画面の水平・垂直に見え、代わりに球が坂を「登り」、
+ * 鉛直に立つ人形や下げ振りが傾いて見える。
+ *
+ * カメラの水平を保ったままだと、画面の枠そのものが真の水平の基準になり、
+ * 「部屋が傾いている」と一目で分かってしまって錯視が成立しない。
+ * 実際のミステリースポットで視界の大半を部屋が占めるのと同じ条件を作る。
  */
 export class TiltedRoom extends BaseExhibit {
   private ball: THREE.Mesh | null = null;
   private ballT = 0;
   private trackStart = new THREE.Vector3();
   private trackEnd = new THREE.Vector3();
+  /** 種明かしの進行度。1 で視界が世界の水平に戻る */
+  private hintT = 0;
+  private readonly frame: CameraFrame = { axis: new THREE.Vector3(), angle: 0 };
 
   protected build(_ctx: LoadContext): void {
     const T = TILT;
@@ -175,6 +199,16 @@ export class TiltedRoom extends BaseExhibit {
     this.addLocalCollider(0, 0.45, -2.4, trackLen, 0.9, 0.35);
     this.addLocalCollider(figX * Math.cos(T.angle), 0.75, -3.2, 0.5, 1.5, 0.5);
 
+    // 視界の傾き。部屋のローカル +z(= 傾きの軸)まわりに部屋と同じだけ回す
+    this.frame.axis.copy(this.frontDir);
+    this.framePatch = (wx, wz) => {
+      const l = this.toLocal(wx, 0, wz);
+      const blend = tiltFrameBlend(l.x, l.z);
+      if (blend <= 0) return null;
+      this.frame.angle = T.angle * blend * (1 - this.hintT);
+      return this.frame;
+    };
+
     // 足元の高さ
     this.groundPatch = (wx, wz) => {
       const th = this.meta.facing + Math.PI;
@@ -228,13 +262,21 @@ export class TiltedRoom extends BaseExhibit {
     horizon.renderOrder = gravity.renderOrder = 11;
     // 世界の水平・鉛直で描く(傾いた部屋の子にしない)
     this.object.add(horizon, gravity);
-    const wire = new WireframeReveal([], { durationMs: 1200 });
+    const wire = new WireframeReveal([], { durationMs: 1600 });
     wire.addLine(horizon).addLine(gravity);
+    // 視界を世界の水平へ戻す。部屋が傾いていたことがそのまま見える
+    const level: HintEffect = {
+      durationMs: 1600,
+      lockViewpoint: false,
+      apply: (t) => {
+        this.hintT = t;
+      },
+    };
     this.setHint(
       new CompositeHintEffect(
-        [wire, new MaterialSwap(walls, { opacity: 0.3 }, { durationMs: 1200 })],
+        [level, wire, new MaterialSwap(walls, { opacity: 0.3 }, { durationMs: 1600 })],
         {
-          durationMs: 1200,
+          durationMs: 1600,
         },
       ),
     );

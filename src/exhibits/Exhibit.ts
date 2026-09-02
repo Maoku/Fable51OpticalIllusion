@@ -40,6 +40,15 @@ export interface LoadContext {
   player: PlayerController;
 }
 
+/**
+ * 視界の傾き。カメラの向きにワールド座標でこの回転を掛けると、
+ * 傾いた部屋の床と壁が画面の水平・垂直に揃う。
+ */
+export interface CameraFrame {
+  axis: THREE.Vector3;
+  angle: number;
+}
+
 export interface Exhibit {
   readonly meta: ExhibitMeta;
   readonly object: THREE.Object3D;
@@ -49,6 +58,8 @@ export interface Exhibit {
   readonly colliders: readonly AABB[];
   /** 足元の高さを変える展示(傾いた床など)。範囲外なら null を返す */
   groundPatch?: (x: number, z: number, currentY: number) => number | null;
+  /** 視界を傾ける展示(傾きの間)。範囲外なら null を返す */
+  framePatch?: (x: number, z: number) => CameraFrame | null;
   load(ctx: LoadContext): Promise<void>;
   update(delta: number, camera: THREE.Camera): void;
   dispose(): void;
@@ -79,6 +90,7 @@ export abstract class BaseExhibit implements Exhibit {
   readonly object = new THREE.Group();
   readonly colliders: AABB[] = [];
   groundPatch?: (x: number, z: number, currentY: number) => number | null;
+  framePatch?: (x: number, z: number) => CameraFrame | null;
   protected loaded = false;
 
   /** ワールド座標をローカル座標へ(toWorld の逆) */

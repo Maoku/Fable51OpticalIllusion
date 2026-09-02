@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Updatable } from '../app/Loop';
 import { bus } from '../app/events';
+import type { CameraFrame } from '../exhibits/Exhibit';
 import type { CompositeInput } from '../input/CompositeInput';
 import { resolveCircle, type AABB } from './Collision';
 
@@ -34,6 +35,11 @@ export class PlayerController implements Updatable {
   groundY = 0;
   /** 足元の高さを座標から返す(傾いた床など) */
   groundAt: ((x: number, z: number, currentY: number) => number) | null = null;
+  /**
+   * 視界の傾きを座標から返す(傾いた部屋の中など)。
+   * カメラの向きにワールド座標で掛けるので、部屋の床と壁が画面の水平・垂直に揃う。
+   */
+  frameAt: ((x: number, z: number) => CameraFrame | null) | null = null;
   /** 演出がカメラを直接動かすときの上書き。null なら通常の一人称 */
   cameraOverride: { position: THREE.Vector3; lookAt: THREE.Vector3 } | null = null;
 
@@ -47,6 +53,8 @@ export class PlayerController implements Updatable {
   } | null = null;
   private readonly tmpDir = new THREE.Vector3();
   private readonly tmpPos = { x: 0, z: 0 };
+  private readonly tmpEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+  private readonly tmpQuat = new THREE.Quaternion();
 
   constructor(
     readonly camera: THREE.PerspectiveCamera,
@@ -172,7 +180,12 @@ export class PlayerController implements Updatable {
       return;
     }
     this.camera.position.set(this.position.x, this.position.y + this.eyeHeight, this.position.z);
-    this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
+    this.camera.quaternion.setFromEuler(this.tmpEuler.set(this.pitch, this.yaw, 0, 'YXZ'));
+    const frame = this.frameAt?.(this.position.x, this.position.z);
+    if (frame && frame.angle !== 0) {
+      // ワールド座標での回転なので premultiply。見回しは傾いた枠の中で行われる
+      this.camera.quaternion.premultiply(this.tmpQuat.setFromAxisAngle(frame.axis, frame.angle));
+    }
   }
 }
 

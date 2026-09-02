@@ -112,6 +112,7 @@ export class App {
     this.scene.add(this.museum.group);
     this.player.colliders = this.museum.colliders;
     this.player.groundAt = (x, z, y) => this.museum.groundAt(x, z, y);
+    this.player.frameAt = (x, z) => this.museum.frameAt(x, z);
     for (const sky of this.museum.skyLights) sky.applyQuality(this.quality.settings);
     this.post.configure(this.quality.settings);
     bus.on('quality:change', ({ tier }) => {

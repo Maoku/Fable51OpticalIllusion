@@ -5,6 +5,7 @@ import { h, uiRoot } from './dom';
 /** ヒントのテキストを表示するパネル。演出の進行度と同期する */
 export class HintPanel {
   private readonly el: HTMLElement;
+  private readonly body: HTMLElement;
   private readonly title: HTMLElement;
   private readonly look: HTMLElement;
   private readonly hint: HTMLElement;
@@ -16,6 +17,13 @@ export class HintPanel {
     this.look = h('p', { className: 'hint-panel__look' });
     this.hint = h('p', { className: 'hint-panel__text' });
     this.bar = h('div', { className: 'hint-panel__bar' });
+    // 本文だけをスクロールさせる。展示名と進行度のバーはスクロールしても残す
+    this.body = h('div', { className: 'hint-panel__body' }, [
+      h('h3', { className: 'hint-panel__sub', text: 'どう見えるか' }),
+      this.look,
+      h('h3', { className: 'hint-panel__sub', text: 'なぜそう見えるか' }),
+      this.hint,
+    ]);
     this.el = h(
       'aside',
       {
@@ -24,7 +32,10 @@ export class HintPanel {
       },
       [
         h('div', { className: 'hint-panel__head' }, [
-          h('p', { className: 'panel__eyebrow', text: '種明かし' }),
+          h('div', { className: 'hint-panel__heading' }, [
+            h('p', { className: 'panel__eyebrow', text: '種明かし' }),
+            this.title,
+          ]),
           h('button', {
             className: 'btn btn--icon hint-panel__close',
             text: '×',
@@ -34,15 +45,13 @@ export class HintPanel {
             },
           }),
         ]),
-        this.title,
-        h('h3', { className: 'hint-panel__sub', text: 'どう見えるか' }),
-        this.look,
-        h('h3', { className: 'hint-panel__sub', text: 'なぜそう見えるか' }),
-        this.hint,
+        this.body,
         h('div', { className: 'hint-panel__track' }, [this.bar]),
       ],
     );
     uiRoot().appendChild(this.el);
+    this.body.addEventListener('scroll', () => this.updateScrollHint());
+    bus.on('app:resize', () => this.updateScrollHint());
 
     bus.on('hint:open', ({ id }) => this.show(id));
     bus.on('hint:progress', ({ id, t }) => {
@@ -61,7 +70,14 @@ export class HintPanel {
     this.hint.textContent = text?.hint ?? '';
     this.bar.style.width = '0%';
     this.el.classList.remove('is-hidden');
-    this.el.scrollTop = 0;
+    this.body.scrollTop = 0;
+    this.updateScrollHint();
+  }
+
+  /** 本文に続きがあるときだけ下端をぼかして、スクロールできることを示す */
+  private updateScrollHint(): void {
+    const rest = this.body.scrollHeight - this.body.clientHeight - this.body.scrollTop;
+    this.el.classList.toggle('has-more', rest > 8);
   }
 
   private hide(): void {

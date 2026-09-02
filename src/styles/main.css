@@ -28,7 +28,12 @@ body {
 
 #app {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* iOS / Android のツールバーの裏に潜り込まないよう、実際に見えている高さに合わせる */
+  height: 100dvh;
 }
 
 #app canvas {
@@ -40,7 +45,11 @@ body {
 
 #ui {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
   pointer-events: none;
 }
 
@@ -111,6 +120,7 @@ body {
   right: max(0.75rem, env(safe-area-inset-right));
   display: flex;
   gap: 0.5rem;
+  transition: opacity 0.2s ease;
 }
 
 /* ---------- ローディング ---------- */
@@ -176,7 +186,8 @@ body {
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 1rem;
+  padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
   background: rgba(29, 27, 24, 0.35);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
@@ -185,7 +196,7 @@ body {
 
 .panel {
   width: min(28rem, 100%);
-  max-height: calc(100vh - 2rem);
+  max-height: 100%;
   overflow: auto;
   padding: 1.75rem 1.75rem 1.5rem;
   border-radius: 1rem;
@@ -239,7 +250,7 @@ body {
 
 .touch-controls__hint {
   position: absolute;
-  bottom: max(1rem, env(safe-area-inset-bottom));
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
   font-size: 0.7rem;
   letter-spacing: 0.15em;
   color: rgba(29, 27, 24, 0.45);
@@ -326,8 +337,9 @@ body.is-touch .btn {
   color: rgba(29, 27, 24, 0.75);
 }
 
+/* 仮想スティックのヒント行の上に置く */
 body.is-touch .hud {
-  bottom: max(6.5rem, calc(env(safe-area-inset-bottom) + 5.5rem));
+  bottom: max(2.5rem, calc(env(safe-area-inset-bottom) + 2rem));
 }
 
 body.is-touch .hud__hint {
@@ -338,12 +350,15 @@ body.is-touch .hud__hint {
 
 /* ---------- ヒントパネル ---------- */
 .hint-panel {
-  position: absolute;
+  /* #ui の中の下部スタックに入っているので、横並びの版はビューポート基準で浮かせる */
+  position: fixed;
   top: max(0.75rem, env(safe-area-inset-top));
   left: max(0.75rem, env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
   width: min(22rem, calc(100vw - 1.5rem));
-  max-height: calc(100vh - 8rem);
-  overflow: auto;
+  max-height: min(26rem, calc(100dvh - 8rem));
+  overflow: hidden;
   padding: 1.1rem 1.25rem 1rem;
   border-radius: 1rem;
   background: var(--panel);
@@ -365,10 +380,61 @@ body.is-touch .hud__hint {
   }
 }
 
+@keyframes hint-top-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 先頭の見出しは上の余白を持たせない(展示名との間が空きすぎるため) */
+.hint-panel__body > :first-child {
+  margin-top: 0;
+}
+
+/* 本文だけをスクロールさせ、進行度のバーはパネルの下端に残す */
+.hint-panel__body {
+  /* flex の子は既定で内容より縮まないので、明示して max-height を効かせる */
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 続きがあるときだけ下端をぼかす(has-more は HintPanel が付け外しする) */
+.hint-panel__body::after {
+  content: '';
+  display: block;
+  position: sticky;
+  bottom: 0;
+  height: 1.75rem;
+  /* 高さを増やさずに本文の最終行へ重ねる */
+  margin-top: -1.75rem;
+  background: linear-gradient(rgba(29, 27, 24, 0), rgba(29, 27, 24, 0.85));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.hint-panel.has-more .hint-panel__body::after {
+  opacity: 1;
+}
+
 .hint-panel__head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* 種明かしの見出しと展示名。スクロール領域の外に置いて、本文を送っても残るようにする */
+.hint-panel__heading {
+  min-width: 0;
 }
 
 .hint-panel .panel__eyebrow {
@@ -421,14 +487,75 @@ body.is-touch .hud__hint {
   transition: width 0.1s linear;
 }
 
-body.is-touch .hint-panel {
-  top: auto;
-  left: 0.75rem;
-  right: 0.75rem;
-  bottom: max(11rem, calc(env(safe-area-inset-bottom) + 10rem));
-  width: auto;
-  max-height: 38vh;
-  font-size: 1rem;
+/*
+ * スマホの縦持ち。横幅が足りないので、ヒントは画面上部の横いっぱいのパネルにする。
+ * 展示は画面の中央、HUD は下端なので、上へ逃がすとどちらとも重ならない。
+ * 横持ちは高さが足りないので、PC と同じ左上のパネルのままにする。
+ */
+@media (orientation: portrait) {
+  body.is-touch .hint-panel {
+    left: max(0.6rem, env(safe-area-inset-left));
+    right: max(0.6rem, env(safe-area-inset-right));
+    width: auto;
+    /* 展示を隠さないよう低く抑え、本文はスクロールで読ませる */
+    max-height: clamp(8.5rem, 17dvh, 10rem);
+    padding: 0.7rem 0.9rem 0.6rem;
+    animation: hint-top-in 0.25s ease;
+  }
+
+  /* 高さが限られるので、見出しまわりを詰める。「種明かし」は展示名で代用する */
+  body.is-touch .hint-panel .panel__eyebrow {
+    display: none;
+  }
+
+  body.is-touch .hint-panel__head {
+    align-items: center;
+  }
+
+  body.is-touch .hint-panel__close {
+    width: 1.9rem;
+    height: 1.9rem;
+  }
+
+  body.is-touch .hint-panel__title {
+    margin: 0;
+    font-size: 1.05rem;
+  }
+
+  body.is-touch .hint-panel__body {
+    margin-top: 0.5rem;
+  }
+
+  body.is-touch .hint-panel__sub {
+    margin: 0.5rem 0 0.15rem;
+  }
+
+  body.is-touch .hint-panel__track {
+    margin-top: 0.6rem;
+  }
+
+  /* 表示できる行が少ないので、続きを示すぼかしも浅くする */
+  body.is-touch .hint-panel__body::after {
+    height: 1.25rem;
+    margin-top: -1.25rem;
+  }
+
+  /* パネルと同じ位置に出るので、開いている間はトップバーを畳む */
+  body.is-touch .topbar.is-hint-open {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  body.is-touch .hint-panel__look,
+  body.is-touch .hint-panel__text {
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  /* シートの見出しと同じ文言なので、開いている間は HUD のラベルを畳む */
+  body.is-touch .hud.is-hint-open .hud__label {
+    display: none;
+  }
 }
 
 /* ---------- 展示一覧 ---------- */

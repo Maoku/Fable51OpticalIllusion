@@ -82,6 +82,8 @@ export class Hud {
     } else {
       near.classList.add('is-hidden');
     }
+    // 縦持ちではヒントパネルの見出しと同じ文言になるので、開いている間はラベルを畳む
+    this.el.classList.toggle('is-hint-open', this.openId !== null && this.openId === this.nearId);
 
     const showPrompt =
       this.started &&

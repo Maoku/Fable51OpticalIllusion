@@ -51,12 +51,15 @@ export function getMaterials(): MuseumMaterials {
     matteWhite: new THREE.MeshStandardMaterial({ color: 0xf4f2ee, roughness: 0.7, metalness: 0 }),
     matteBlack: new THREE.MeshStandardMaterial({ color: 0x1d1b18, roughness: 0.6, metalness: 0.1 }),
     sky: new THREE.MeshBasicMaterial({ color: new THREE.Color(0xcfe3f5).multiplyScalar(2.2) }),
+    // 磨りの弱い板ガラス。roughness を上げてあるのは、窓の向こうの光源が
+    // 小さく強い玉になって映り込むのを避けるため
     glass: new THREE.MeshPhysicalMaterial({
       color: 0xdfe9ee,
       transparent: true,
       opacity: 0.12,
-      roughness: 0.05,
+      roughness: 0.28,
       metalness: 0,
+      envMapIntensity: 0.35,
       depthWrite: false,
     }),
   };

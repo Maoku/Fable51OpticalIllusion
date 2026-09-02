@@ -1,10 +1,20 @@
 import * as THREE from 'three';
+import { BokehPass } from 'three/examples/jsm/postprocessing/BokehPass.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import type { QualitySettings } from './Quality';
+
+export interface DepthOfField {
+  /** ピントが合う距離(m) */
+  focus: number;
+  /** 絞り。大きいほどぼけが強い */
+  aperture?: number;
+  /** ぼけの上限 */
+  maxblur?: number;
+}
 
 /**
  * ティアに応じたポストプロセス。
@@ -14,6 +24,9 @@ export class PostProcess {
   private composer: EffectComposer | null = null;
   private bloom: UnrealBloomPass | null = null;
   private ao: GTAOPass | null = null;
+  private bokeh: BokehPass | null = null;
+  private output: OutputPass | null = null;
+  private dof: DepthOfField | null = null;
   private settings: QualitySettings | null = null;
   /** AO を止めたい展示のキー。1 つでも入っていれば AO を切る */
   private readonly aoSuppressors = new Set<string>();
@@ -50,6 +63,46 @@ export class PostProcess {
 
   private applyAo(): void {
     if (this.ao) this.ao.enabled = this.aoSuppressors.size === 0;
+  }
+
+  /** 被写界深度が効いているか */
+  get dofEnabled(): boolean {
+    return this.bokeh !== null && this.bokeh.enabled;
+  }
+
+  /**
+   * 被写界深度をかける / 外す。null で外す。
+   * コンポーザがある mid 以上でのみ効く(low は直接描画なので何もしない)。
+   */
+  setDepthOfField(params: DepthOfField | null): void {
+    this.dof = params;
+    this.applyDof();
+  }
+
+  private applyDof(): void {
+    const p = this.dof;
+    const composer = this.composer;
+    if (p && !this.bokeh && composer) {
+      // 使うと決まってから作る。パスは深度用のレンダーターゲットを持つので、
+      // 使わないティア(とくにモバイル)では確保しない
+      const bokeh = new BokehPass(this.scene, this.camera, {
+        focus: p.focus,
+        aperture: p.aperture ?? 0.0002,
+        maxblur: p.maxblur ?? 0.004,
+      });
+      const before = this.bloom ?? this.output;
+      const index = before ? composer.passes.indexOf(before) : composer.passes.length;
+      composer.insertPass(bokeh, index < 0 ? composer.passes.length : index);
+      this.bokeh = bokeh;
+    }
+    const bokeh = this.bokeh;
+    if (!bokeh) return;
+    bokeh.enabled = p !== null;
+    if (!p) return;
+    const u = bokeh.uniforms as Record<string, { value: number }>;
+    u['focus']!.value = p.focus;
+    u['aperture']!.value = p.aperture ?? 0.0002;
+    u['maxblur']!.value = p.maxblur ?? 0.004;
   }
 
   configure(settings: QualitySettings): void {
@@ -91,8 +144,11 @@ export class PostProcess {
       composer.addPass(bloom);
       this.bloom = bloom;
     }
-    composer.addPass(new OutputPass());
+    this.output = new OutputPass();
+    composer.addPass(this.output);
     this.composer = composer;
+    // ティアが変わって作り直したときも、要求されていれば入れ直す
+    this.applyDof();
   }
 
   setSize(width: number, height: number): void {
@@ -118,8 +174,11 @@ export class PostProcess {
     this.composer?.dispose();
     this.bloom?.dispose();
     this.ao?.dispose();
+    this.bokeh?.dispose();
     this.composer = null;
     this.bloom = null;
     this.ao = null;
+    this.bokeh = null;
+    this.output = null;
   }
 }

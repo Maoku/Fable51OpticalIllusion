@@ -95,7 +95,8 @@ export const fableDefinitions: ExhibitDefinition[] = [
           Math.PI / 2,
           2.6,
           1.3,
-          0.02,
+          // 水面は水平から 5°〜23° 下に見えるので、その帯を画面の中央寄りへ持ってくる
+          -0.15,
           new THREE.Vector3(0.7, 0, WINDOW.z),
         ),
       ),

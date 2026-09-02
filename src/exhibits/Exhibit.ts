@@ -60,6 +60,8 @@ export interface Exhibit {
   groundPatch?: (x: number, z: number, currentY: number) => number | null;
   /** 視界を傾ける展示(傾きの間)。範囲外なら null を返す */
   framePatch?: (x: number, z: number) => CameraFrame | null;
+  /** この配下だけにフォグを効かせる(scene.fog は展示側で設定する) */
+  fogScope?: THREE.Object3D;
   load(ctx: LoadContext): Promise<void>;
   update(delta: number, camera: THREE.Camera): void;
   dispose(): void;
@@ -91,6 +93,7 @@ export abstract class BaseExhibit implements Exhibit {
   readonly colliders: AABB[] = [];
   groundPatch?: (x: number, z: number, currentY: number) => number | null;
   framePatch?: (x: number, z: number) => CameraFrame | null;
+  fogScope?: THREE.Object3D;
   protected loaded = false;
 
   /** ワールド座標をローカル座標へ(toWorld の逆) */

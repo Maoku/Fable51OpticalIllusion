@@ -10,6 +10,7 @@ import { HintController } from '../interaction/HintController';
 import { ProximityDetector } from '../interaction/ProximityDetector';
 import { LightCuller } from '../museum/LightCuller';
 import { Museum } from '../museum/Museum';
+import { applyFogScope } from '../museum/fogScope';
 import { createViewpointMark } from '../museum/ViewpointMark';
 import { PlayerController } from '../player/PlayerController';
 import { Credits } from '../ui/Credits';
@@ -147,6 +148,12 @@ export class App {
         this.scene.add(createViewpointMark(e.meta.viewpoint.position, e.meta.viewpoint.yaw));
       }
     }
+    // フォグの範囲を絞る。fog はシェーダの define なので、シーンに置くものが
+    // 出そろってから、シェーダを用意する前に 1 回だけ確定させる
+    const fogScopes = this.registry.exhibits
+      .map((e) => e.fogScope)
+      .filter((o): o is THREE.Object3D => o !== undefined);
+    if (fogScopes.length > 0) applyFogScope(this.scene, fogScopes);
     loading.setProgress(0.88, '入力を準備しています…');
     await nextFrame();
 

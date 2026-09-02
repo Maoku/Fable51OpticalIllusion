@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { createCaptionFor } from '../../museum/Caption';
 import { getMaterials } from '../../museum/materials';
 import { createFigure } from '../../procedural/figure';
+import { MeshBatch } from '../../procedural/merge';
 import { makeCanvasTexture, mulberry32 } from '../../procedural/textures';
 import { BaseExhibit, type LoadContext } from '../Exhibit';
 import { CompositeHintEffect } from '../HintEffect';
@@ -157,48 +158,40 @@ export class ForcedPerspectiveGarden extends BaseExhibit {
     );
     planter.position.set(0, (tableTop - 0.5) / 2, -3.05);
     enclosure.add(planter);
-    for (let i = 0; i < 26; i++) {
-      const bush = new THREE.Mesh(
-        new THREE.SphereGeometry(0.09 + rand() * 0.07, 10, 8),
-        new THREE.MeshStandardMaterial({ color: 0x35553a, roughness: 1 }),
-      );
-      bush.position.set(
-        -4.1 + (i / 25) * 8.2,
-        tableTop + 0.06 + rand() * 0.04,
-        -3.05 + (rand() - 0.5) * 0.1,
-      );
-      bush.scale.set(1.2, 0.8, 1);
-      enclosure.add(bush);
-    }
 
-    // 石・木・東屋(遠いほど小さく、霞の色に寄せる)
-    const stoneMat = (d: number) =>
-      new THREE.MeshStandardMaterial({ color: hazed(0x7e7a74, d), roughness: 0.95 });
-    const trunkMat = (d: number) =>
-      new THREE.MeshStandardMaterial({ color: hazed(0x5a4634, d), roughness: 0.9 });
-    const leafMat = (d: number) =>
-      new THREE.MeshStandardMaterial({ color: hazed(0x3f7a4a, d), roughness: 0.85 });
-    const placeTree = (x: number, z: number, h: number, d: number) => {
-      const g = new THREE.Group();
-      const trunk = new THREE.Mesh(
-        new THREE.CylinderGeometry(h * 0.04, h * 0.06, h * 0.45, 8),
-        trunkMat(d),
+    // 小物(生垣の丸み、石、木、東屋、灯籠)は頂点色で 1 メッシュにまとめる
+    const batch = new MeshBatch();
+    const at = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
+    for (let i = 0; i < 34; i++) {
+      batch.add(
+        new THREE.SphereGeometry(0.09 + rand() * 0.07, 10, 8),
+        0x35553a,
+        at(-5.5 + (i / 33) * 11, tableTop + 0.06 + rand() * 0.04, -3.05 + (rand() - 0.5) * 0.1),
+        undefined,
+        new THREE.Vector3(1.2, 0.8, 1),
       );
-      trunk.position.y = h * 0.225;
-      const crown = new THREE.Mesh(new THREE.ConeGeometry(h * 0.3, h * 0.7, 9), leafMat(d));
-      crown.position.y = h * 0.45 + h * 0.35;
-      g.add(trunk, crown);
-      g.position.set(x, tableTop, z);
-      g.rotation.y = rand() * Math.PI;
-      enclosure.add(g);
+    }
+    // 木: 手前の岸(窓に近い側 z ≈ -3.4)と奥の岸(z ≈ -7.6)。奥ほど小さく、霞の色に寄せる
+    const placeTree = (x: number, z: number, h: number, d: number) => {
+      const rot = new THREE.Euler(0, rand() * Math.PI, 0);
+      batch.add(
+        new THREE.CylinderGeometry(h * 0.04, h * 0.06, h * 0.45, 8),
+        hazed(0x5a4634, d),
+        at(x, tableTop + h * 0.225, z),
+        rot,
+      );
+      batch.add(
+        new THREE.ConeGeometry(h * 0.3, h * 0.7, 9),
+        hazed(0x3f7a4a, d),
+        at(x, tableTop + h * 0.8, z),
+        rot,
+      );
     };
-    // 手前の岸(窓に近い側 z ≈ -3.4)と奥の岸(z ≈ -7.6)。奥ほど小さい
     for (let i = 0; i < 14; i++) {
       const x = -4.3 + rand() * 8.6;
       const near = rand() < 0.4;
       const z = near ? -3.45 - rand() * 0.25 : -7.2 - rand() * 0.45;
-      const d = near ? 0.05 : 0.75;
-      placeTree(x, z, near ? 0.36 + rand() * 0.22 : 0.12 + rand() * 0.08, d);
+      placeTree(x, z, near ? 0.36 + rand() * 0.22 : 0.12 + rand() * 0.08, near ? 0.05 : 0.75);
     }
     for (let i = 0; i < 18; i++) {
       const x = -4.4 + rand() * 8.8;
@@ -206,34 +199,42 @@ export class ForcedPerspectiveGarden extends BaseExhibit {
       const z = near ? -3.4 - rand() * 0.2 : -7.35 - rand() * 0.3;
       const d = near ? 0.05 : 0.75;
       const r = (near ? 0.05 : 0.02) + rand() * (near ? 0.08 : 0.03);
-      const stone = new THREE.Mesh(new THREE.DodecahedronGeometry(r, 0), stoneMat(d));
-      stone.position.set(x, tableTop + r * 0.5, z);
-      stone.rotation.set(rand() * 3, rand() * 3, 0);
-      stone.scale.set(1, 0.6, 1);
-      enclosure.add(stone);
+      batch.add(
+        new THREE.DodecahedronGeometry(r, 0),
+        hazed(0x7e7a74, d),
+        at(x, tableTop + r * 0.5, z),
+        new THREE.Euler(rand() * 3, rand() * 3, 0),
+        new THREE.Vector3(1, 0.6, 1),
+      );
     }
     // 東屋(奥、右)
-    const hut = new THREE.Group();
-    const hutBody = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.1, 0.16), stoneMat(0.7));
-    hutBody.position.y = 0.05;
-    const hutRoof = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.09, 4), trunkMat(0.7));
-    hutRoof.position.y = 0.145;
-    hutRoof.rotation.y = Math.PI / 4;
-    hut.add(hutBody, hutRoof);
-    hut.position.set(2.6, tableTop, -7.3);
-    enclosure.add(hut);
+    batch.add(
+      new THREE.BoxGeometry(0.16, 0.1, 0.16),
+      hazed(0x7e7a74, 0.7),
+      at(2.6, tableTop + 0.05, -7.3),
+    );
+    batch.add(
+      new THREE.ConeGeometry(0.15, 0.09, 4),
+      hazed(0x5a4634, 0.7),
+      at(2.6, tableTop + 0.145, -7.3),
+      new THREE.Euler(0, Math.PI / 4, 0),
+    );
     // 石灯籠(手前、左)
-    const lantern = new THREE.Group();
-    const lb = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.22, 8), stoneMat(0.05));
-    lb.position.y = 0.11;
-    const lh = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.07, 0.1), stoneMat(0.05));
-    lh.position.y = 0.26;
-    const lr = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.06, 4), stoneMat(0.05));
-    lr.position.y = 0.33;
-    lr.rotation.y = Math.PI / 4;
-    lantern.add(lb, lh, lr);
-    lantern.position.set(-3.2, tableTop, -3.55);
-    enclosure.add(lantern);
+    const stone = hazed(0x7e7a74, 0.05);
+    batch.add(
+      new THREE.CylinderGeometry(0.03, 0.04, 0.22, 8),
+      stone,
+      at(-3.2, tableTop + 0.11, -3.55),
+    );
+    batch.add(new THREE.BoxGeometry(0.1, 0.07, 0.1), stone, at(-3.2, tableTop + 0.26, -3.55));
+    batch.add(
+      new THREE.ConeGeometry(0.09, 0.06, 4),
+      stone,
+      at(-3.2, tableTop + 0.33, -3.55),
+      new THREE.Euler(0, Math.PI / 4, 0),
+    );
+    const scenery = batch.build(new THREE.MeshStandardMaterial({ roughness: 0.9 }));
+    if (scenery) enclosure.add(scenery);
 
     // 庭の光: 夕方の低い光(範囲を限ったスポット)と柔らかな補助光。方向光は館内全体に及ぶので使わない
     const sun = new THREE.SpotLight(0xffe2c0, 60, 18, Math.PI / 3, 0.9, 1.2);

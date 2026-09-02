@@ -30,6 +30,16 @@ export default defineConfig({
         launchOptions: { args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] },
       },
     },
+    // Safari 相当の確認。CI は chromium しか入れないのでローカルのみ、起動スモークだけ回す
+    ...(isCI
+      ? []
+      : [
+          {
+            name: 'desktop-webkit',
+            testMatch: /smoke\.spec\.ts/,
+            use: { ...devices['Desktop Safari'] },
+          },
+        ]),
   ],
   webServer: {
     // CI では build 済みの dist を preview で配信する。ローカルは dev サーバー。

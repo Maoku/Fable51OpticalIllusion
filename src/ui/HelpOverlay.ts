@@ -4,6 +4,7 @@ import { h, uiRoot } from './dom';
 export interface HelpOverlayOptions {
   touch: boolean;
   onStart: () => void;
+  onCredits?: () => void;
 }
 
 /** 操作説明。PC / モバイルで文言を切り替える */
@@ -34,6 +35,17 @@ export class HelpOverlay {
             text: '展示に近づくと「ヒントを見る」ボタンが現れます。押すと種明かし、もう一度押すと元に戻ります。',
           }),
           this.startBtn,
+          h('div', { className: 'help__links' }, [
+            h('button', {
+              className: 'link',
+              text: 'クレジット',
+              attrs: { type: 'button', 'data-testid': 'credits-button' },
+              onClick: () => {
+                this.hide();
+                opts.onCredits?.();
+              },
+            }),
+          ]),
         ]),
       ],
     );

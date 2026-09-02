@@ -499,3 +499,93 @@ body.is-touch .hint-panel {
 body.is-touch .list__item {
   padding: 0.85rem 1rem;
 }
+
+/* ---------- クレジット ---------- */
+.credits__panel {
+  width: min(34rem, 100%);
+}
+
+.credits__note {
+  margin: 0.5rem 0 1rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: rgba(29, 27, 24, 0.75);
+}
+
+.credits__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.credits__item {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid rgba(29, 27, 24, 0.12);
+  border-radius: 0.6rem;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.credits__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.credits__name {
+  pointer-events: auto;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.credits__kind {
+  font-size: 0.75rem;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+}
+
+.credits__meta,
+.credits__usage {
+  font-size: 0.8rem;
+  color: rgba(29, 27, 24, 0.7);
+}
+
+.help__links {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.link {
+  pointer-events: auto;
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  color: rgba(29, 27, 24, 0.7);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---------- 統計 ---------- */
+.stats {
+  position: absolute;
+  left: max(0.75rem, env(safe-area-inset-left));
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.4rem;
+  background: rgba(29, 27, 24, 0.75);
+  color: #dfe;
+  font:
+    11px/1.5 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  pointer-events: none;
+}

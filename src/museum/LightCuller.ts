@@ -21,7 +21,10 @@ export class LightCuller implements Updatable {
     root.updateMatrixWorld(true);
     root.traverse((o) => {
       if (!(o instanceof THREE.PointLight) && !(o instanceof THREE.SpotLight)) return;
-      const range = (o.userData.cullRange as number | undefined) ?? defaultRange;
+      // 既定は到達距離 + 5 m(到達距離のない光源は defaultRange)
+      const range =
+        (o.userData.cullRange as number | undefined) ??
+        (o.distance > 0 ? o.distance + 5 : defaultRange);
       const pos = new THREE.Vector3();
       o.getWorldPosition(pos);
       this.lights.push({ light: o, range2: range * range, pos });

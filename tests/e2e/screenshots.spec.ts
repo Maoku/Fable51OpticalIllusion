@@ -1,4 +1,4 @@
-import { mkdirSync } from 'node:fs';
+import { appendFileSync, mkdirSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
 /**
@@ -21,7 +21,7 @@ test.describe('screenshots', () => {
     test.skip(!POSES, 'SHOT_POSES が未設定');
     test.setTimeout(300_000);
     mkdirSync(OUT, { recursive: true });
-    await page.goto('/');
+    await page.goto('/?timescale=3' + (process.env.SHOT_QUERY ?? ''));
     await expect(page.locator('body')).toHaveAttribute('data-ready', '1', { timeout: 30_000 });
     await page.getByTestId('help-start').click();
     for (const entry of POSES!.split(';')) {
@@ -40,6 +40,14 @@ test.describe('screenshots', () => {
       );
       await page.waitForTimeout(600);
       await page.screenshot({ path: `${OUT}/${name}.png` });
+      // `&stats=1` を付けて撮ると、描画統計をログに出す
+      const stats = page.getByTestId('stats');
+      if ((await stats.count()) > 0) {
+        await page.waitForTimeout(700);
+        const line = `[${name}] ${(await stats.textContent())?.replace(/\n/g, ' | ')}`;
+        console.log(line);
+        appendFileSync(`${OUT}/stats.log`, `${line}\n`);
+      }
     }
   });
 

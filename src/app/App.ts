@@ -12,11 +12,13 @@ import { LightCuller } from '../museum/LightCuller';
 import { Museum } from '../museum/Museum';
 import { createViewpointMark } from '../museum/ViewpointMark';
 import { PlayerController } from '../player/PlayerController';
+import { Credits } from '../ui/Credits';
 import { ExhibitList } from '../ui/ExhibitList';
 import { HelpOverlay } from '../ui/HelpOverlay';
 import { HintPanel } from '../ui/HintPanel';
 import { Hud } from '../ui/Hud';
 import { LoadingScreen } from '../ui/LoadingScreen';
+import { Stats } from '../ui/Stats';
 import { TouchControls } from '../ui/TouchControls';
 import { h, uiRoot } from '../ui/dom';
 import { Loop } from './Loop';
@@ -49,6 +51,7 @@ export class App {
   hud!: Hud;
   hintPanel!: HintPanel;
   list!: ExhibitList;
+  credits!: Credits;
   private readonly modals = new Set<string>();
 
   constructor(private readonly container: HTMLElement) {
@@ -67,6 +70,8 @@ export class App {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.localClippingEnabled = true;
+    // 統計はフレーム全体(ポストプロセスの各パスを含む)で集計する
+    this.renderer.info.autoReset = false;
 
     this.quality = new QualityController(this.renderer, {
       isMobile: this.isMobile,
@@ -213,6 +218,7 @@ export class App {
       isDragFallback: () => this.keyboard.dragFallback,
     });
     this.hintPanel = new HintPanel();
+    this.credits = new Credits();
     this.list = new ExhibitList(this.registry.definitions.map((d) => ({ id: d.id, room: d.room })));
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Tab') {
@@ -225,6 +231,7 @@ export class App {
       onStart: () => {
         if (!this.touchMode) this.keyboard.requestLock();
       },
+      onCredits: () => this.credits.show(),
     });
 
     const topBar = h('div', { className: 'topbar' }, [
@@ -242,6 +249,16 @@ export class App {
       }),
     ]);
     uiRoot().appendChild(topBar);
+
+    if (new URLSearchParams(window.location.search).get('stats') === '1') {
+      this.loop.add(
+        new Stats(
+          this.renderer,
+          this.quality,
+          () => `lights ${this.lightCuller?.activeCount ?? 0}/${this.lightCuller?.count ?? 0}`,
+        ),
+      );
+    }
 
     // 開発・テスト用のフック
     window.__museum = this;
@@ -269,6 +286,7 @@ export class App {
   }
 
   render(): void {
+    this.renderer.info.reset();
     this.post.render();
   }
 }

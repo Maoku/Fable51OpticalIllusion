@@ -63,14 +63,15 @@ PC の既定を「ボタンを押しながらドラッグして見回す」に�
 | UI との共存 | DOM ボタンは `pointer-events: auto` なのでキャンバスに `pointerdown` が届かない。ドラッグの終点がボタン上でも click は発火しない(同一要素で down/up していないため) |
 | 感度 | ドラッグは移動量が画面幅に制限されるので、PointerLock 時の 0.0022 rad/px より高い 0.0035 rad/px 程度から調整する |
 | PointerLock | 既定では使わない。`L` キーで任意に切り替えられるオプションとして残す(Esc で解除。§9-1) |
-| 案内 | HUD の「画面をクリックすると視点を操作できます」を「右ボタンを押しながらドラッグで見回せます」に変え、最初のドラッグまで(または 8 秒間)表示する |
+| 案内 | HUD の「画面をクリックすると視点を操作できます」を「マウスの右ボタンを押しながらドラッグすると見回せます」に変え、最初に視点を回すまで表示する |
 | 文言 | `HelpOverlay` の PC 行、README の操作表を更新し、README 冒頭の「現行」の注記を外す |
 
 ### 3.3 変更ファイル
 
-- `src/input/KeyboardMouseInput.ts`: DOM 非依存の `MouseLookCore`(`TouchInputCore` と同じ構造)を切り出し、ボタン種別つきのポインタ列から yaw/pitch を計算する。`autoLock` の既定を false にし、`L` キーで `requestLock`/`releaseLock`
-- `src/app/App.ts`: `onStart` の `requestLock()` を削除。`contextmenu` 抑止
-- `src/ui/Hud.ts`: `isLocked`/`isDragFallback` に代えて「一度でもドラッグしたか」で案内を出す
+- `src/input/MouseLook.ts`(新規): DOM 非依存の `MouseLookCore`(`TouchInputCore` と同じ構造)。ボタン種別つきのポインタ列から yaw/pitch を計算する
+- `src/input/KeyboardMouseInput.ts`: コアを使う形に置き換え、`autoLock` を `lockAllowed` に改め、`L` キーで `requestLock`/`releaseLock` を切り替える。ポインタキャプチャの例外は握り潰す(対象のポインタが既にない環境で回転が止まらないように)
+- `src/app/App.ts`: `onStart` の `requestLock()` を削除し、ドラッグ状態を `body.is-dragging` と `input:looked` イベントへ流す。`contextmenu` 抑止は `KeyboardMouseInput` 側で行う
+- `src/ui/Hud.ts`: `isLocked`/`isDragFallback` に代えて「一度でも視点を回したか」で案内を出す(`HudOptions` は不要になったので削除)
 - `src/ui/HelpOverlay.ts`、`README.md`、`src/styles/main.css`(`is-dragging`)
 
 ### 3.4 テストと受け入れ基準
@@ -362,7 +363,7 @@ B・D では登るほど天井が下がり、頂部で 1.31 m まで狭まる。
 | フェーズ | 内容 | 依存 | 規模 | 完了条件 |
 |---------|------|------|------|---------|
 | R0 調査 ✔ | 実 GPU で F3 の原因を切り分け。F6 の天井高テストを書いて失敗を確認 | なし | S | 完了。F3 の原因は GTAO と確定(§5.2)。F6 の E2E が赤(頭上 1.31 m、§5.4)。現状のスクリーンショットは `Docs/screenshots/` の git 履歴を基準とする |
-| R1 操作方法 | §3。`MouseLookCore`、右/左ドラッグ、`L` キー、HUD・ヘルプ・README | なし | M | E2E `controls.spec.ts` が通る。PointerLock なしでヒントボタンが押せる |
+| R1 操作方法 ✔ | §3。`MouseLookCore`、右/左ドラッグ、`L` キー、HUD・ヘルプ・README | なし | M | 完了。単体 10 件、E2E `controls.spec.ts` 6 件が緑。ドラッグ直後にヒントボタンを押せることを E2E で確認した |
 | R1' 小修正 | F6(§5.4)、C7(§4.2)。それぞれ別 PR でよい | R0 | S+S | F6 のテストが緑。C7 のスクリーンショット更新 |
 | R2 傾きの部屋 | §5.1。視界フレームの機構と `TiltedRoom` の変更、文言 | なし | M | E2E で傾き/復帰を確認。目視で球が登る |
 | R3 ポストプロセスと回廊 | `LoadContext.post`、`PostProcess` API、F3(§5.2)、F4(§5.3 A・B・C)。F3 を先に小さな PR、F4 を続ける | R0 | S + L | F3: 実 GPU で稜線が消える。F4: 水面が見え、霞が掛かる。被写界深度の A/B 判断 |

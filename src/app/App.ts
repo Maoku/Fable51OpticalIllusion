@@ -215,6 +215,10 @@ export class App {
   private setupInput(): void {
     this.input.attach(this.canvas);
     this.keyboard.onLockChange = (locked) => bus.emit('input:lockchange', { locked });
+    this.keyboard.onDragChange = (dragging) => {
+      document.body.classList.toggle('is-dragging', dragging);
+      if (dragging) bus.emit('input:looked', undefined);
+    };
     this.touch.onFirstTouch = () => this.setTouchMode(true);
     if (isTouchPrimary()) this.setTouchMode(true);
 
@@ -223,7 +227,7 @@ export class App {
       else this.modals.delete(id);
       const anyOpen = this.modals.size > 0;
       this.player.enabled = !anyOpen;
-      this.keyboard.autoLock = !anyOpen;
+      this.keyboard.lockAllowed = !anyOpen;
       if (anyOpen) this.keyboard.releaseLock();
     });
   }
@@ -257,10 +261,7 @@ export class App {
 
   private setupUi(): void {
     this.touchControls = new TouchControls(this.touch);
-    this.hud = new Hud({
-      isLocked: () => this.keyboard.locked,
-      isDragFallback: () => this.keyboard.dragFallback,
-    });
+    this.hud = new Hud();
     this.hintPanel = new HintPanel();
     this.credits = new Credits();
     this.list = new ExhibitList(this.registry.definitions.map((d) => ({ id: d.id, room: d.room })));
@@ -272,9 +273,6 @@ export class App {
     });
     this.help = new HelpOverlay({
       touch: isTouchPrimary(),
-      onStart: () => {
-        if (!this.touchMode) this.keyboard.requestLock();
-      },
       onCredits: () => this.credits.show(),
     });
 

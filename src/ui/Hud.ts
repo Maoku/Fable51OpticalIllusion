@@ -2,12 +2,6 @@ import { bus } from '../app/events';
 import { exhibitTexts } from '../content/exhibits.ja';
 import { h, uiRoot } from './dom';
 
-export interface HudOptions {
-  /** PointerLock の状態を返す(PC のクリック案内に使う) */
-  isLocked: () => boolean;
-  isDragFallback: () => boolean;
-}
-
 /** 画面下部の HUD。最寄り展示の名前と「ヒントを見る」ボタンを表示する */
 export class Hud {
   private readonly el: HTMLElement;
@@ -19,8 +13,9 @@ export class Hud {
   private touch = false;
   private modal = false;
   private started = false;
+  private looked = false;
 
-  constructor(private readonly opts: HudOptions) {
+  constructor() {
     this.label = h('div', { className: 'hud__label', attrs: { 'data-testid': 'hud-label' } });
     this.button = h('button', {
       className: 'btn btn--primary hud__hint',
@@ -32,7 +27,7 @@ export class Hud {
     });
     this.prompt = h('div', {
       className: 'hud__prompt is-hidden',
-      text: '画面をクリックすると視点を操作できます',
+      text: 'マウスの右ボタンを押しながらドラッグすると見回せます',
     });
     this.el = h('div', { className: 'hud' }, [
       this.prompt,
@@ -52,7 +47,10 @@ export class Hud {
       if (this.openId === id) this.openId = null;
       this.refresh();
     });
-    bus.on('input:lockchange', () => this.refresh());
+    bus.on('input:looked', () => {
+      this.looked = true;
+      this.refresh();
+    });
     bus.on('input:touchmode', ({ touch }) => {
       this.touch = touch;
       this.refresh();
@@ -85,12 +83,7 @@ export class Hud {
     // 縦持ちではヒントパネルの見出しと同じ文言になるので、開いている間はラベルを畳む
     this.el.classList.toggle('is-hint-open', this.openId !== null && this.openId === this.nearId);
 
-    const showPrompt =
-      this.started &&
-      !this.touch &&
-      !this.modal &&
-      !this.opts.isLocked() &&
-      !this.opts.isDragFallback();
+    const showPrompt = this.started && !this.touch && !this.modal && !this.looked;
     this.prompt.classList.toggle('is-hidden', !showPrompt);
   }
 }

@@ -7,15 +7,14 @@
 
 - Claude Fable 5.1
   - 実装計画書 : high
-  - 実装 : xhigh
+  - 実装計画に基づく実装 : xhigh
+  - 改修計画書 : xhigh
+- Claude Opus 5
+  - 改修計画書に基づく実装 : xhigh
 
 ## 遊べるページ
 
 https://maoku.github.io/Fable51OpticalIllusion/
-
-### 現行
-
-- 錯視として成立していない展示があります
 
 ## 過去のシリーズ
 

@@ -32,8 +32,17 @@ export class PlayerController implements Updatable {
   colliders: readonly AABB[] = [];
   /** 足元の高さ(将来の段差用) */
   groundY = 0;
+  /** 演出がカメラを直接動かすときの上書き。null なら通常の一人称 */
+  cameraOverride: { position: THREE.Vector3; lookAt: THREE.Vector3 } | null = null;
 
   private readonly velocity = new THREE.Vector3();
+  private tween: {
+    from: Pose;
+    to: Pose;
+    elapsed: number;
+    duration: number;
+    resolve: () => void;
+  } | null = null;
   private readonly tmpDir = new THREE.Vector3();
   private readonly tmpPos = { x: 0, z: 0 };
 
@@ -58,17 +67,58 @@ export class PlayerController implements Updatable {
     return { position: this.position.clone(), yaw: this.yaw, pitch: this.pitch };
   }
 
+  /** 指定の姿勢へ滑らかに移動する。duration が 0 なら即座に移動 */
+  moveTo(pose: Pose, duration = 0.6): Promise<void> {
+    this.tween?.resolve();
+    this.tween = null;
+    if (duration <= 0) {
+      this.teleport(pose);
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+      this.tween = {
+        from: this.pose,
+        to: { position: pose.position.clone(), yaw: pose.yaw, pitch: pose.pitch },
+        elapsed: 0,
+        duration,
+        resolve,
+      };
+    });
+  }
+
+  get isMoving(): boolean {
+    return this.tween !== null;
+  }
+
+  private updateTween(delta: number): void {
+    const tw = this.tween;
+    if (!tw) return;
+    tw.elapsed += delta;
+    const raw = Math.min(1, tw.elapsed / tw.duration);
+    const e = raw < 0.5 ? 2 * raw * raw : 1 - Math.pow(-2 * raw + 2, 2) / 2;
+    this.position.lerpVectors(tw.from.position, tw.to.position, e);
+    this.yaw = tw.from.yaw + shortestAngle(tw.from.yaw, tw.to.yaw) * e;
+    this.pitch = THREE.MathUtils.lerp(tw.from.pitch, tw.to.pitch, e);
+    this.velocity.set(0, 0, 0);
+    if (raw >= 1) {
+      this.tween = null;
+      tw.resolve();
+    }
+  }
+
   update(delta: number): void {
     const input = this.input;
     const look = input.consumeLook();
-    if (this.enabled) {
+    const tweening = this.tween !== null;
+    if (this.enabled && !tweening && !this.cameraOverride) {
       this.yaw += look.yaw;
       this.pitch = THREE.MathUtils.clamp(this.pitch + look.pitch, -PITCH_LIMIT, PITCH_LIMIT);
     }
+    this.updateTween(delta);
 
     const move = input.poll();
     const speed = input.sprint ? this.sprintSpeed : this.walkSpeed;
-    const canMove = this.enabled && !this.frozen;
+    const canMove = this.enabled && !this.frozen && !tweening;
 
     // 目標速度(ワールド座標)
     const sin = Math.sin(this.yaw);
@@ -110,7 +160,20 @@ export class PlayerController implements Updatable {
   }
 
   private syncCamera(): void {
+    if (this.cameraOverride) {
+      this.camera.position.copy(this.cameraOverride.position);
+      this.camera.lookAt(this.cameraOverride.lookAt);
+      return;
+    }
     this.camera.position.set(this.position.x, this.position.y + this.eyeHeight, this.position.z);
     this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
   }
+}
+
+/** a から b への最短の角度差(-π..π) */
+export function shortestAngle(a: number, b: number): number {
+  let d = (b - a) % (Math.PI * 2);
+  if (d > Math.PI) d -= Math.PI * 2;
+  if (d < -Math.PI) d += Math.PI * 2;
+  return d;
 }

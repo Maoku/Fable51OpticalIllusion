@@ -14,6 +14,17 @@ export interface MuseumEvents extends Record<string, unknown> {
   'quality:change': { tier: QualityTier; pixelRatio: number };
   /** モーダル UI の開閉。開いている間はプレイヤー操作を止める */
   'ui:modal': { open: boolean; id: string };
+  /** 最寄り展示に入った / 離れた */
+  'exhibit:near': { id: string };
+  'exhibit:leave': { id: string };
+  /** ヒントの開閉要求(ボタン、E キー、タッチ) */
+  'hint:toggle': { id: string };
+  'hint:open': { id: string };
+  'hint:close': { id: string };
+  /** 演出の進行度 0..1 */
+  'hint:progress': { id: string; t: number };
+  /** 展示一覧などから推奨視点へワープ */
+  warp: { id: string };
 }
 
 export const bus = new EventBus<MuseumEvents>();

@@ -36,4 +36,14 @@ export const credits: Credit[] = [
     usage: '3D 描画ライブラリ',
     kind: 'library',
   },
+  {
+    name: 'Noto Sans JP',
+    author: 'Google (Google Fonts)',
+    url: 'https://fonts.google.com/noto/specimen/Noto+Sans+JP',
+    license: 'OFL-1.1',
+    licenseUrl: 'https://openfontlicense.org/',
+    modified: false,
+    usage: 'UI とキャプションプレートのフォント(Google Fonts から配信)',
+    kind: 'font',
+  },
 ];

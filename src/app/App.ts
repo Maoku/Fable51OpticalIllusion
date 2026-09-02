@@ -3,9 +3,15 @@ import { CompositeInput } from '../input/CompositeInput';
 import { KeyboardMouseInput } from '../input/KeyboardMouseInput';
 import { TouchInput } from '../input/TouchInput';
 import { hasTouch, isMobileDevice, isTouchPrimary } from '../input/device';
+import { ExhibitRegistry } from '../exhibits/registry';
+import { HintController } from '../interaction/HintController';
+import { ProximityDetector } from '../interaction/ProximityDetector';
 import { Museum } from '../museum/Museum';
+import { createViewpointMark } from '../museum/ViewpointMark';
 import { PlayerController } from '../player/PlayerController';
 import { HelpOverlay } from '../ui/HelpOverlay';
+import { HintPanel } from '../ui/HintPanel';
+import { Hud } from '../ui/Hud';
 import { LoadingScreen } from '../ui/LoadingScreen';
 import { TouchControls } from '../ui/TouchControls';
 import { h, uiRoot } from '../ui/dom';
@@ -30,6 +36,11 @@ export class App {
   museum!: Museum;
   help!: HelpOverlay;
   touchControls!: TouchControls;
+  registry!: ExhibitRegistry;
+  proximity!: ProximityDetector;
+  hints!: HintController;
+  hud!: Hud;
+  hintPanel!: HintPanel;
   private readonly modals = new Set<string>();
 
   constructor(private readonly container: HTMLElement) {
@@ -47,6 +58,7 @@ export class App {
     this.renderer.toneMappingExposure = 1.0;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.localClippingEnabled = true;
 
     this.quality = new QualityController(this.renderer, {
       isMobile: this.isMobile,
@@ -74,14 +86,38 @@ export class App {
     this.scene.add(this.museum.group);
     this.player.colliders = this.museum.colliders;
     this.player.teleport(this.museum.spawn);
-    loading.setProgress(0.6, '入力を準備しています…');
+    loading.setProgress(0.25, 'フォントを読み込んでいます…');
+    await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 2500))]);
+
+    loading.setProgress(0.3, '展示を設営しています…');
+    this.registry = new ExhibitRegistry();
+    await this.registry.loadAll(
+      {
+        quality: this.quality.settings,
+        renderer: this.renderer,
+        scene: this.scene,
+        camera: this.camera,
+        museum: this.museum,
+        player: this.player,
+      },
+      (done, total) => loading.setProgress(0.3 + 0.55 * (done / total)),
+    );
+    for (const e of this.registry.exhibits) {
+      if (e.meta.viewpoint) {
+        this.scene.add(createViewpointMark(e.meta.viewpoint.position, e.meta.viewpoint.yaw));
+      }
+    }
+    loading.setProgress(0.9, '入力を準備しています…');
     await nextFrame();
 
     this.setupUi();
     this.setupInput();
+    this.setupInteraction();
 
     this.loop.add(this.quality);
     this.loop.add(this.player);
+    this.loop.add(this.hints);
+    this.loop.add({ update: (delta) => this.registry.update(delta, this.camera) });
     this.loop.add(this.touchControls);
     this.loop.start();
 
@@ -109,8 +145,40 @@ export class App {
     });
   }
 
+  private setupInteraction(): void {
+    this.proximity = new ProximityDetector(this.registry.proximityTargets());
+    this.hints = new HintController(this.registry, this.player);
+    this.loop.add({
+      update: () => {
+        const { entered, left } = this.proximity.update(
+          this.player.position.x,
+          this.player.position.z,
+        );
+        if (left) bus.emit('exhibit:leave', { id: left });
+        if (entered) bus.emit('exhibit:near', { id: entered });
+      },
+    });
+    bus.on('warp', ({ id }) => void this.warpTo(id));
+  }
+
+  /** 展示の推奨視点へワープする */
+  async warpTo(id: string, duration = 0): Promise<void> {
+    const exhibit = this.registry.get(id);
+    const vp = exhibit?.meta.viewpoint;
+    if (!vp) return;
+    if (this.hints.openId) {
+      this.hints.hintPlayer.reset();
+    }
+    await this.player.moveTo(vp, duration);
+  }
+
   private setupUi(): void {
     this.touchControls = new TouchControls(this.touch);
+    this.hud = new Hud({
+      isLocked: () => this.keyboard.locked,
+      isDragFallback: () => this.keyboard.dragFallback,
+    });
+    this.hintPanel = new HintPanel();
     this.help = new HelpOverlay({
       touch: isTouchPrimary(),
       onStart: () => {

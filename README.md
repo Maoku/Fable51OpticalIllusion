@@ -5,15 +5,15 @@
 ![](./sample00.jpg)
 ![](./sample01.jpg)
 
-
-- Claude Fable 5.1 
-    - 実装計画書 : high
-    - 実装 : xhigh
+- Claude Fable 5.1
+  - 実装計画書 : high
+  - 実装 : xhigh
 
 ## 遊べるページ
+
 https://maoku.github.io/Fable51OpticalIllusion/
 
-### 現行 
+### 現行
 
 - マウス操作とブラウザフォーカスがかちあうので、ヒント表示は Eキー がおすすめ
 - 錯視として成立していない展示があります
@@ -23,7 +23,6 @@ https://maoku.github.io/Fable51OpticalIllusion/
 - Opus 5 : https://github.com/Maoku/Opus5OpticalIllusion
 - Fable 5 : https://github.com/Maoku/FableOpticalIllusion
 - GPT-5.6 Sol https://github.com/Maoku/GPT56SolOpticalIllusion
-
 
 # Optical Illusion Museum
 

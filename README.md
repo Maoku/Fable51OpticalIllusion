@@ -1,4 +1,3 @@
-
 # Fable 5.1製 Optical Illusion Museum (錯視美術館)
 
 生成AIモデルの空間把握性能を探るために作った技術検証プロジェクト

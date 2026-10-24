@@ -73,7 +73,7 @@ https://maoku.github.io/Fable51OpticalIllusion/
 
 ## ローカルで動かす
 
-Node.js 22.12 以上が必要です(`.nvmrc` に記載。`nvm use` で切り替えられます)。
+Node.js 24.22.1 以降の24系を使用します（`.nvmrc` に記載。`nvm use` で切り替えられます）。
 
 ```bash
 npm ci
